@@ -2,7 +2,7 @@ import mysql.connector
 from datetime import date
 from datetime import datetime
 import time
-import mini_xAPIConnector
+import xAPIConnector
 from sys import argv
 import os
 import dotenv
@@ -49,7 +49,7 @@ class XtbApi:
         self.ssid = None
         self.status = None
         self.streamclient = None
-        self.xtb_client = mini_xAPIConnector.APIClient()
+        self.xtb_client = xAPIConnector.APIClient()
 
         self.initial_ping()  # initial command
 
@@ -74,7 +74,7 @@ class XtbApi:
                 logged_in = True
                 self.ssid = login_response['streamSessionId']
                 self.status = login_response["status"]
-                self.streamclient = mini_xAPIConnector.APIStreamClient(ssId=self.ssid)
+                self.streamclient = xAPIConnector.APIStreamClient(ssId=self.ssid)
 
             elif login_response['errorCode'] == "BE118":
                 out = "Already logged in!"
