@@ -17,8 +17,8 @@ fri_trade_cursor = db.cursor(buffered=True)
 
 balance_eur = 10000
 lots = 0.01
-pip_eur = 0.43  # @0.01 lot
-margin_one_microlot = 93.18
+pip_eur = 0.1  # @0.01 lot
+margin_one_microlot = 33.3
 base_onehundred_margin_eur = 2.32  # @price 100 and 0.01 lot
 active_charts = [{"name": "US500_1h", "is_currency": False}, {"name": "EURCHF_1h", "is_currency": True}]
 
@@ -44,9 +44,9 @@ def date_now():
     return date_actual
 
 
-def get_all_candles():
+def get_all_candles(symbol, timeframe):
     all_candles_list = []
-    q = """SELECT * FROM fri_trade.candle_data_US500_1h_atr_sf order by id desc"""
+    q = f"""SELECT * FROM fri_trade.candle_data_{symbol}_{timeframe}_atr_sf order by id desc"""
     fri_trade_cursor.execute(q)
     all_candles = fri_trade_cursor.fetchall()
 
@@ -68,16 +68,16 @@ def get_all_candles():
             'sf_bool_sell_strong': candle_data[11],
 
             'processed': candle_data[12],
-            'value_atr_up': candle_data[13],
-            'value_atr_down': candle_data[14],
+            'value_atrb_up': candle_data[13],
+            'value_atrb_down': candle_data[14],
             "50sma": candle_data[15]
         }
         all_candles_list.append(candle_dict)
     return all_candles_list
 
 
-def get_next_candle():
-    q = """SELECT * FROM fri_trade.candle_data_US500_1h_atr_sf where processed = 0 order by id desc"""
+def get_next_candle(symbol, timeframe):
+    q = f"""SELECT * FROM fri_trade.candle_data_{symbol}_{timeframe}_atr_sf where processed = 0 order by id desc"""
     fri_trade_cursor.execute(q)
     candle_data = fri_trade_cursor.fetchone()
 
@@ -97,16 +97,16 @@ def get_next_candle():
         'sf_bool_buy_strong': candle_data[10],
         'sf_bool_sell_strong': candle_data[11],
 
-        'value_atr_up': candle_data[12],
-        'value_atr_down': candle_data[13],
+        'value_atrb_up': candle_data[12],
+        'value_atrb_down': candle_data[13],
 
         "50sma": candle_data[14]
     }
     return candle
 
 
-def get_previous_candle(new_id):
-    q = f"""SELECT * FROM fri_trade.candle_data_US500_1h_atr_sf where id = {new_id + 1}"""
+def get_previous_candle(new_id, symbol, timeframe):
+    q = f"""SELECT * FROM fri_trade.candle_data_{symbol}_{timeframe}_atr_sf where id = {new_id + 1}"""
     fri_trade_cursor.execute(q)
     candle_data = fri_trade_cursor.fetchone()
     if candle_data is not None:
@@ -126,8 +126,8 @@ def get_previous_candle(new_id):
             'sf_bool_buy_strong': candle_data[10],
             'sf_bool_sell_strong': candle_data[11],
 
-            'value_atr_up': candle_data[12],
-            'value_atr_down': candle_data[13],
+            'value_atrb_up': candle_data[12],
+            'value_atrb_down': candle_data[13],
 
             "50sma": candle_data[14]
         }
@@ -136,7 +136,34 @@ def get_previous_candle(new_id):
         return None
 
 
-def check_atr_condition(candle, prev_candle):
+def check_condition_sf_strong(candle, prev_candle):
+    operation = None
+    print("SF strong - checking candle", candle["id"])
+
+    buy_strong, sell_strong, new_id, price_close = candle["sf_bool_buy_strong"], candle["sf_bool_sell_strong"],\
+        candle["id"], candle["price_close"]
+
+    if prev_candle is not None:
+        prev_buy_strong, prev_sell_strong = prev_candle["sf_bool_buy_strong"], prev_candle["sf_bool_sell_strong"]
+
+        # buy condition
+        if buy_strong and not prev_buy_strong:
+            print(f"SF Strong - buy!")
+            operation = "buy"
+
+        # sell condition
+        elif sell_strong and not prev_sell_strong:
+            print(f"SF Strong - sell!")
+            operation = "sell"
+
+        if operation is not None:
+            get_sl_tp_for_sf_trade("EURCHF", operation, price_close, new_id, candle["value_atrb_up"],
+                                   candle["value_atrb_down"], candle["50sma"])
+
+
+
+
+def check_condition_atr(candle, prev_candle, symbol):
     operation = None
     # print("ATR - checking candle", candle["id"])
 
@@ -149,37 +176,41 @@ def check_atr_condition(candle, prev_candle):
         # buy condition
         if new_price_close > new_value_atr and prev_price_close < prev_value_atr:
             # print(f"{chart_name} ATR - buy!")
-            print(f"US500 ATR - buy!")
+            print(f"ATR - buy!")
             operation = "buy"
 
         # sell condition
         elif new_price_close < new_value_atr and prev_price_close > prev_value_atr:
             # print(f"{chart_name} ATR - sell!")
-            print(f"US500 ATR - sell!")
+            print(f"ATR - sell!")
             operation = "sell"
         else:
             # print(f"{chart_name} ATR - no trade!")
-            # print(f"US500 ATR - no trade!")
+            # print(f"ATR - no trade!")
             pass
 
-    q = f"""UPDATE fri_trade.candle_data_US500_1h_atr_sf SET processed = true where id = {new_id}"""
-    fri_trade_cursor.execute(q)
 
     if operation is not None:
-        get_sl_tp_for_atr_trade("US500", operation, new_value_atr, new_price_close, new_id,
-                                candle["value_atr_up"], candle["value_atr_down"], candle["50sma"])
+        get_sl_tp_for_atr_trade(symbol, operation, new_value_atr, new_price_close, new_id,
+                                candle["value_atrb_up"], candle["value_atrb_down"], candle["50sma"])
 
 
-def get_sl_tp_for_atr_trade(chart_name, operation, value_atr, candle_price_close, new_id, value_atr_up, value_atr_down,
-                            sma50):
+def update_processed(candle,symbol, timeframe):
+    new_id = candle["id"]
+    q = f"""UPDATE fri_trade.candle_data_{symbol}_{timeframe}_atr_sf SET processed = true where id = {new_id}"""
+    fri_trade_cursor.execute(q)
+
+
+def get_sl_tp_for_atr_trade(symbol, operation, value_atr, candle_price_close, new_id, value_atrb_up,
+                            value_atrb_down, sma50):
     indicator_name = "atr"
     if operation == "buy":
         # stoploss_pips = (candle_price_close - value_atr) + ((candle_price_close - value_atr) * 0.2)
         stoploss_pips = candle_price_close - value_atr
         stoploss_price = round(candle_price_close - stoploss_pips, 1)
 
-        # q = f"""SELECT value_atr_up FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
-        takeprofit_price = value_atr_up
+        # q = f"""SELECT value_atrb_up FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
+        takeprofit_price = value_atrb_up
         takeprofit_pips = takeprofit_price - candle_price_close
 
     else:  # elif operation == "sell":
@@ -187,20 +218,41 @@ def get_sl_tp_for_atr_trade(chart_name, operation, value_atr, candle_price_close
         stoploss_pips = value_atr - candle_price_close
         stoploss_price = round(candle_price_close + stoploss_pips, 1)
 
-        # q = f"""SELECT value_atr_down FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
-        takeprofit_price = value_atr_down
+        # q = f"""SELECT value_atrb_down FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
+        takeprofit_price = value_atrb_down
         takeprofit_pips = candle_price_close - takeprofit_price
 
-    open_position(operation, candle_price_close, indicator_name, takeprofit_price, stoploss_price, new_id, sma50)
+    open_position(symbol, operation, candle_price_close, indicator_name, takeprofit_price, stoploss_price, new_id,
+                  sma50)
 
 
-def open_position(operation, candle_price_close, indicator_name, takeprofit_price, stoploss_price, candle_id, sma50):
-    symbol = "US500"
+def get_sl_tp_for_sf_trade(symbol, operation, candle_price_close, new_id, value_atrb_up, value_atrb_down,
+                           sma50):
+    indicator_name = "smartforex"
+    if operation == "buy":
+        stoploss_pips = candle_price_close - value_atrb_down
+        stoploss_price = round(candle_price_close - stoploss_pips, 5)
+
+        takeprofit_price = value_atrb_up
+        takeprofit_pips = takeprofit_price - candle_price_close
+    else:  # elif operation == "sell":
+        stoploss_pips = value_atrb_up - candle_price_close
+        stoploss_price = round(candle_price_close + stoploss_pips, 5)
+
+        takeprofit_price = value_atrb_down
+        takeprofit_pips = candle_price_close - takeprofit_price
+
+    open_position(symbol, operation, candle_price_close, indicator_name, takeprofit_price, stoploss_price, new_id, sma50)
+
+
+def open_position(symbol, operation, candle_price_close, indicator_name, takeprofit_price, stoploss_price, candle_id,
+                  sma50):
     timeframe = "1h"
     opened = True
 
     # (cena, na ktorej sa pozicia otvara * marza_pri_cene_100) / 100
     margin_needed_for_new_trade = round((candle_price_close * base_onehundred_margin_eur) / 100, 2)
+    margin_needed_for_new_trade = round((lots*100) * margin_one_microlot, 2) # pre EURCHF
 
     q = f"""select opened from fri_trade.simulator_positions_2 where opened = true and ordertype = '{operation}'"""
     fri_trade_cursor.execute(q)
@@ -211,8 +263,8 @@ def open_position(operation, candle_price_close, indicator_name, takeprofit_pric
         sma_bool = True
 
     # if opened_orders is None and sma_bool:
-    if sma_bool:
-    # if opened_orders is None:
+    # if sma_bool:
+    if opened_orders is None:
         q = f"""insert into fri_trade.simulator_positions_2 (symbol, ordertype, lots, margin,
         conditionTriggered, timeframe, opened, reason, profit, takeprofit_price, stoploss_price, price_open, open_candle_id)
         VALUES ('{symbol}', '{operation}', '{lots}', '{margin_needed_for_new_trade}', '{indicator_name}', '{timeframe}', 
@@ -261,6 +313,10 @@ def position_checker(candle):
                 profit_pips = (position["takeprofit_price"] - position["price_open"])
                 profit_eur = round(profit_pips * (pip_eur * (lots * 100)), 2)
 
+                # EURCHF CURRENCY OVERRIDE
+                profit_eur = round((profit_pips * 10000) * pip_eur * (lots * 100), 2)
+
+
                 q = f"""UPDATE simulator_positions_2 set opened = false, reason = '{reason}', profit = {profit_eur}, 
                 price_close = {tp}, close_candle_id = {candle['id']} where id = {position['id']}"""
                 fri_trade_cursor.execute(q)
@@ -270,6 +326,9 @@ def position_checker(candle):
 
                 profit_pips = (position["stoploss_price"] - position["price_open"])
                 profit_eur = round(profit_pips * (pip_eur * (lots * 100)), 2)
+
+                # EURCHF CURRENCY OVERRIDE
+                profit_eur = round((profit_pips * 10000) * pip_eur * (lots * 100), 2)
 
                 q = f"""UPDATE simulator_positions_2 set opened = false, reason = '{reason}', profit = {profit_eur},
                 price_close = {sl}, close_candle_id = {candle['id']} where id = {position['id']}"""
@@ -291,6 +350,9 @@ def position_checker(candle):
                 profit_pips = (position["price_open"] - position["takeprofit_price"])
                 profit_eur = round(profit_pips * (pip_eur * (lots * 100)), 2)
 
+                # EURCHF CURRENCY OVERRIDE
+                profit_eur = round((profit_pips * 10000) * pip_eur * (lots * 100), 2)
+
                 q = f"""UPDATE simulator_positions_2 set opened = false, reason = '{reason}', profit = {profit_eur},
                 price_close = {tp}, close_candle_id = {candle['id']} where id = {position['id']}"""
                 fri_trade_cursor.execute(q)
@@ -300,6 +362,9 @@ def position_checker(candle):
 
                 profit_pips = (position["price_open"] - position["stoploss_price"])
                 profit_eur = round(profit_pips * (pip_eur * (lots * 100)), 2)
+
+                # EURCHF CURRENCY OVERRIDE
+                profit_eur = round((profit_pips * 10000) * pip_eur * (lots * 100), 2)
 
                 q = f"""UPDATE simulator_positions_2 set opened = false, reason = '{reason}', profit = {profit_eur},
                 price_close = {sl}, close_candle_id = {candle['id']} where id = {position['id']}"""
@@ -316,8 +381,10 @@ def position_checker(candle):
 
 
 def main():
-    all_candles_list = get_all_candles()
-    q = f"""UPDATE fri_trade.candle_data_US500_1h_atr_sf SET processed = false"""
+    symbol = input("Insert symbol: ")
+    timeframe = input("Insert timeframe: ")
+    all_candles_list = get_all_candles(symbol, timeframe)
+    q = f"""UPDATE fri_trade.candle_data_{symbol}_{timeframe}_atr_sf SET processed = false"""
     fri_trade_cursor.execute(q)
 
     for candle in all_candles_list:
@@ -327,7 +394,10 @@ def main():
             prev_candle = all_candles_list[candle_index - 1]
 
         position_checker(candle)
-        check_atr_condition(candle, prev_candle)
+        check_condition_sf_strong(candle, prev_candle)
+        # check_condition_atr(candle, prev_candle, symbol)
+
+        update_processed(candle, symbol, timeframe)
 
     print("\n---   DONE!")
 
