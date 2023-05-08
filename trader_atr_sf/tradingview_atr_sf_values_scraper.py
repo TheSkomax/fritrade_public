@@ -1,5 +1,5 @@
 # =================================================================
-# TRADINGVIEW SCRAPER for ATR and Smart Forex (+ CE)
+# TRADINGVIEW SCRAPER for ATR and Smart Forex (+ CE) values
 # =================================================================
 
 from selenium import webdriver
@@ -23,6 +23,8 @@ options = webdriver.FirefoxOptions()
 options.binary_location = "/usr/bin/firefox"
 driverService = Service("/usr/local/bin/geckodriver")
 
+target_min_sec = "59:51"
+# target_min_sec = "42:40"
 chart_url = "https://www.tradingview.com/chart"
 cookies_file = "cookies-tradingview-com_fritrade.csv"
 table_name_part = "atr_smartfrx_"
@@ -160,15 +162,21 @@ def get_values():
 
 
 def write_to_db(values_dict, chart_name):
-    q = f"""insert into fri_trade.{table_name_part}{chart_name} (timeOfValue, dateOfValue, price_open, price_high, price_low, price_close, value_atr, ce_bool_buy, ce_bool_sell, sf_bool_buy, sf_bool_sell, sf_bool_buy_strong, sf_bool_sell_strong, processed, value_atr_up, value_atr_down) VALUES('{time_now_hms()}', '{date_now()}', '{values_dict['price_open']}', '{values_dict['price_high']}', '{values_dict['price_low']}', '{values_dict['price_close']}', '{values_dict['value_atr']}', {values_dict['ce_bool_buy']}, {values_dict['ce_bool_sell']}, '{values_dict['sf_bool_buy']}', '{values_dict['sf_bool_sell']}', '{values_dict['sf_bool_buy_strong']}', '{values_dict['sf_bool_sell_strong']}', False, '{values_dict['value_atr_up']}', '{values_dict['value_atr_down']}')"""
+    q = f"""insert into fri_trade.{table_name_part}{chart_name} (timeOfValue, dateOfValue, price_open, price_high, 
+    price_low, price_close, value_atr, ce_bool_buy, ce_bool_sell, sf_bool_buy, sf_bool_sell, sf_bool_buy_strong, 
+    sf_bool_sell_strong, processed, value_atr_up, value_atr_down) VALUES('{time_now_hms()}', '{date_now()}', 
+    '{values_dict['price_open']}', '{values_dict['price_high']}', '{values_dict['price_low']}', 
+    '{values_dict['price_close']}', '{values_dict['value_atr']}', {values_dict['ce_bool_buy']}, 
+    {values_dict['ce_bool_sell']}, '{values_dict['sf_bool_buy']}', '{values_dict['sf_bool_sell']}', 
+    '{values_dict['sf_bool_buy_strong']}', '{values_dict['sf_bool_sell_strong']}', False, 
+    '{values_dict['value_atr_up']}', '{values_dict['value_atr_down']}')"""
+
     fri_trade_cursor.execute(q)
     print(f"{date_now()} {time_now_hms()} {chart_name} Added to database")
 
 
 def main_loop():
     open_browser()
-    target_min_sec = "59:51"
-    # target_min_sec = "42:40"
 
     print(f"{date_now()} {time_now_hms()} Scraper started... (Target time: *{target_min_sec})\n")
     while True:
