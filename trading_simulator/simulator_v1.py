@@ -16,8 +16,9 @@ db = mysql.connector.connect(host="localhost",
 fri_trade_cursor = db.cursor(buffered=True)
 
 balance_eur = 10000
-lots = 0.01
+lots = 0.09
 pip_eur = 0.1  # @0.01 lot
+spread_pips = 0.00014  # @0.01 lot
 margin_one_microlot = 33.3
 base_onehundred_margin_eur = 2.32  # @price 100 and 0.01 lot
 active_charts = [{"name": "US500_1h", "is_currency": False}, {"name": "EURCHF_1h", "is_currency": True}]
@@ -161,8 +162,6 @@ def check_condition_sf_strong(candle, prev_candle):
                                    candle["value_atrb_down"], candle["50sma"])
 
 
-
-
 def check_condition_atr(candle, prev_candle, symbol):
     operation = None
     # print("ATR - checking candle", candle["id"])
@@ -207,7 +206,7 @@ def get_sl_tp_for_atr_trade(symbol, operation, value_atr, candle_price_close, ne
     if operation == "buy":
         # stoploss_pips = (candle_price_close - value_atr) + ((candle_price_close - value_atr) * 0.2)
         stoploss_pips = candle_price_close - value_atr
-        stoploss_price = round(candle_price_close - stoploss_pips, 1)
+        stoploss_price = round(candle_price_close - stoploss_pips, 5)
 
         # q = f"""SELECT value_atrb_up FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
         takeprofit_price = value_atrb_up
@@ -216,7 +215,7 @@ def get_sl_tp_for_atr_trade(symbol, operation, value_atr, candle_price_close, ne
     else:  # elif operation == "sell":
         # stoploss_pips = (value_atr - candle_price_close) + ((value_atr - candle_price_close) * 0.2)
         stoploss_pips = value_atr - candle_price_close
-        stoploss_price = round(candle_price_close + stoploss_pips, 1)
+        stoploss_price = round(candle_price_close + stoploss_pips, 5)
 
         # q = f"""SELECT value_atrb_down FROM fri_trade.{table_name_part}{chart_name} where id = {new_id}"""
         takeprofit_price = value_atrb_down
@@ -262,13 +261,18 @@ def open_position(symbol, operation, candle_price_close, indicator_name, takepro
     if (operation == "buy" and sma50 >= candle_price_close) or (operation == "sell" and sma50 <= candle_price_close):
         sma_bool = True
 
+    if operation == "buy":
+        opened_at_price = candle_price_close + (spread_pips * (lots * 100))
+    elif operation == "sell":
+        opened_at_price = candle_price_close - (spread_pips * (lots * 100))
     # if opened_orders is None and sma_bool:
     # if sma_bool:
-    if opened_orders is None:
+    # if opened_orders is None:
+    if True:
         q = f"""insert into fri_trade.simulator_positions_2 (symbol, ordertype, lots, margin,
         conditionTriggered, timeframe, opened, reason, profit, takeprofit_price, stoploss_price, price_open, open_candle_id)
         VALUES ('{symbol}', '{operation}', '{lots}', '{margin_needed_for_new_trade}', '{indicator_name}', '{timeframe}', 
-        {opened}, '{None}', 0, {takeprofit_price}, {stoploss_price}, {candle_price_close}, {candle_id})"""
+        {opened}, '{None}', 0, {takeprofit_price}, {stoploss_price}, {opened_at_price}, {candle_id})"""  # {candle_price_close}
         fri_trade_cursor.execute(q)
 
         print(f"Order opened (added to database) - {symbol} {indicator_name} {operation} {candle_id}")
