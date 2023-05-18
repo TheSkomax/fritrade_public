@@ -413,7 +413,7 @@ if __name__ == "__main__":
 # TODO free margin kontrolor, ktory ju bude pocitat z balacne a z margin na otvorenych poziciach, margin z pozicii, ktore sa zavru, prirata k free margin
 # TODOne nastavit to, nech to ignoruje error values ako 99999.9 >>> prerobene hodnoty v table a scraper nastaveny, nech tam dava hodnoty z predoslej sviecky
 # TODO urobit funkciu na SF a CE
-# TODO skusit s 50sma, ze neotvarat ked je cena pod nim ci tak nejak
+# TODOne skusit s 50sma, ze neotvarat ked je cena pod nim ci tak nejak
 # TODOne nech to neotvara buy ked uz je jeden buy otvoreny - tym padom max otvorenych pozicii naraz su 2???
 # TODO profit protector - ukradnut z prveho tradera, nech to berie dajme tomu len ten 10% zisk na pozitivny stoploss ked je to zatial len s 0.01 lotmi
 
