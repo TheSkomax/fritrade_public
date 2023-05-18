@@ -10,8 +10,9 @@ import os
 import dotenv
 
 table_name_part = "atr_smartfrx_"
-active_charts = [{"name": "US500_1h", "is_currency": False}, {"name": "EURCHF_1h", "is_currency": True}]
-dotenv.load_dotenv("../.env")
+active_charts = [{"name": "US500_1h", "is_currency": False},
+                 {"name": "EURCHF_1h", "is_currency": True}]
+dotenv.load_dotenv(".env")
 mysql_user = os.environ["mysql_user"]
 mysql_passw = os.environ["mysql_passw"]
 
