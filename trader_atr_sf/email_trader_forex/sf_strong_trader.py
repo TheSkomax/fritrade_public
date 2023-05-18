@@ -57,6 +57,10 @@ def time_now_ms():
     # print(time_actual)
     return time_actual
 
+def hour_now():
+    hour_actual = datetime.now().hour
+    return int(hour_actual)
+
 
 def date_now():
     date_object = date.today()
@@ -93,7 +97,6 @@ def get_values_emails():
         atrup_value = round(float(message[message.index("ATR-upper") + 1]), 5)
         atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)
         price_close = round(float(message[message.index('2;">Price') + 1]), 5)
-        print(atrup_value, atrlow_value, price_close)
 
         insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
                             message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
@@ -106,20 +109,19 @@ def get_values_emails():
             last_msgnum = int(fri_trade_cursor.fetchone()[0])
             if int(msgnum) > last_msgnum:
                 fri_trade_cursor.execute(insert_query)
-                print(f"{msgnum} New value added!")
-            else:
-                print(f"{msgnum} Value already in database")
+                print(f"{date_now()} {time_now_hms()} New value added!")
+            # else:
+            #     print(f"{msgnum} Value already in database")
 
         except TypeError:
             print(f"{msgnum} Database empty - first email!")
             fri_trade_cursor.execute(insert_query)
 
-
     imap.close()
     imap.logout()
 
 
-def get_alert_emails():
+def get_alert_emails_buy():
     imap = imaplib.IMAP4_SSL(email_server)
     imap.login(azet_trade_alerts_login, azet_trade_alerts_passw)
     imap.select("Inbox")
@@ -127,7 +129,7 @@ def get_alert_emails():
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 5m STRONG BUY (fake)")')
     for msgnum in msgnums[0].split():
         msgnum = msgnum.decode("utf-8")
-        # if msgum > ako last_msgnum z databazy tak nech ten mail vytiahne, inak nie
+        # TODO if msgum > ako last_msgnum z databazy tak nech ten mail vytiahne, inak nie
         _, data = imap.fetch(msgnum, "(RFC822)")
         message = email.message_from_bytes(data[0][1])
 
@@ -165,39 +167,76 @@ def get_alert_emails():
             last_msgnum = int(fri_trade_cursor.fetchone()[0])
             if int(msgnum) > last_msgnum:
                 fri_trade_cursor.execute(insert_query)
-                print(f"{msgnum} New email alert added!")
-                #     RUN COMMUNICATOR************************************************************************
-            else:
-                print(f"{msgnum} Email already in database")
+                print(f"{date_now()} {time_now_hms()} New email alert added!")
+                get_sl_tp(operation, symbol, timeframe)
+            # else:
+            #     print(f"{msgnum} Alert already in database")
 
         except TypeError:
-            print(f"{msgnum} Database empty - first email!")
+            print(f"{msgnum} Database empty - first email alert!")
             fri_trade_cursor.execute(insert_query)
 
     imap.close()
     imap.logout()
 
 
-def communicator(chart_name, indicator, operation, takeprofit_pips, stoploss_pips):
+def get_sl_tp(operation, symbol, timeframe):
+    select_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived from fri_trade.
+                       EURCHF_1h_values_sf_strong order by id desc limit 1"""
+    fri_trade_cursor.execute(select_query)
+    res = fri_trade_cursor.fetchone()
+
+    time_received = res[0]
+    hour = int(time_received[:2])
+    price_close = res[1]
+    value_atrb_up = res[2]
+    value_atrb_down = res[3]
+    date_received = res[4]
+
+    if hour == hour_now() and date_received == date_now():
+        if operation == "buy":
+            stoploss_pips = price_close - value_atrb_down
+            stoploss_price = round(price_close - stoploss_pips, 5)
+
+            takeprofit_price = value_atrb_up
+            takeprofit_pips = takeprofit_price - price_close
+        else:  # elif operation == "sell":
+            stoploss_pips = value_atrb_up - price_close
+            stoploss_price = round(price_close + stoploss_pips, 5)
+
+            takeprofit_price = value_atrb_down
+            takeprofit_pips = price_close - takeprofit_price
+
+        print("OPENING TRADE!!!")
+        # communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe)
+    else:
+        print("Wrong value in database - old one, hour/date condition is not satisfied")
+        print(f"Hour {hour}, hour_now {hour_now()}, date rec {date_received}, date_now {date_now()}")
+
+
+def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
     proc = subprocess.call(["python3",
-                            "./api_communicator.py", chart_name, indicator, operation, str(takeprofit_pips),
-                            str(stoploss_pips)
+                            "./api_communicator.py", operation, price_close, takeprofit_pips, stoploss_pips, symbol,
+                            timeframe
                             ])
     if proc == 2:
         subprocess.call(["python3",
-                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader/api_communicator.py",
-                         chart_name, indicator, operation, str(takeprofit_pips), str(stoploss_pips)
+                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/api_communicator.py",
+                         operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe
                          ])
 
 
 def main():
-    get_values_emails()
-    # while True:
-    #     get_alert_emails()
-    #     time.sleep(30)
+    print(f"{date_now()} {time_now_hms()} Started")
+    while True:
+        print(f"{date_now()} {time_now_hms()} Checking...\n")
+        get_values_emails()
+        get_alert_emails_buy()
+
+        print(f"\n{date_now()} {time_now_hms()} Sleeping...\n")
+        time.sleep(60)
+    # pass
 
 
 if __name__ == "__main__":
     main()
-
-# TODO na zapisovanie udajov z atr indikatora pouzit dalsi samostatny ucet s alertom, ktory bude posielat udaje kazdu hodinu, dat tam nejaku podmienku co je stale splnena
