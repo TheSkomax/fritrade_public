@@ -11,21 +11,10 @@ import time
 from datetime import date
 from datetime import datetime
 import subprocess
-
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
+import logging
 
 
 dotenv.load_dotenv(".env")
-azet_trade_alerts_login = os.environ["azet_trade_alerts_login"]
-azet_trade_alerts_passw = os.environ["azet_trade_alerts_passw"]
-
-azet_values_report_login = os.environ["azet_values_report_login"]
-azet_values_report_passw = os.environ["azet_values_report_passw"]
-
-mysql_user = os.environ["mysql_user"]
-mysql_passw = os.environ["mysql_passw"]
-
 table_name_part = ""
 active_charts = [{"name": "US500_1h", "is_currency": False},
                  {"name": "EURCHF_1h", "is_currency": True}]
@@ -33,15 +22,32 @@ active_charts = [{"name": "US500_1h", "is_currency": False},
 
 # ---------------- EMAIL ----------------
 email_server = "imap.azet.sk"
+azet_buy_alerts_login = os.environ["azet_buy_alerts_login"]
+azet_buy_alerts_passw = os.environ["azet_buy_alerts_passw"]
+
+azet_values_report_login = os.environ["azet_values_report_login"]
+azet_values_report_passw = os.environ["azet_values_report_passw"]
 
 
 # ---------------- MYSQL ----------------
+mysql_user = os.environ["mysql_user"]
+mysql_passw = os.environ["mysql_passw"]
 db_connection = mysql.connector.connect(host="localhost",
                                         user=mysql_user,
                                         passwd=mysql_passw,
                                         database="fri_trade",
                                         autocommit=True)
 fri_trade_cursor = db_connection.cursor(buffered=True)
+
+
+# ---------------- LOGGING ----------------
+log_sf_trader = logging.getLogger("sf_logger")
+log_sf_trader.setLevel(logging.INFO)
+log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
+                                  "%d.%m.%Y %H:%M:%S")
+file_handler = logging.FileHandler("log_sf_trader.log")
+file_handler.setFormatter(log_formatter)
+log_sf_trader.addHandler(file_handler)
 
 
 def time_now_hms():
@@ -57,6 +63,7 @@ def time_now_ms():
     # print(time_actual)
     return time_actual
 
+
 def hour_now():
     hour_actual = datetime.now().hour
     return int(hour_actual)
@@ -65,7 +72,10 @@ def hour_now():
 def date_now():
     date_object = date.today()
     date_actual = date_object.strftime("%d.%m.%Y")
-    # print(date_actual)
+    date_list = date_actual.split(".")
+    list_int = [int(x) for x in date_list]
+    list_str = [str(x) for x in list_int]
+    date_actual = ".".join(list_str)
     return date_actual
 
 
@@ -87,7 +97,14 @@ def get_values_emails():
         date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%B').tm_mon}.{timelist[3]}"
         time_hms = timelist[4]
         time_hms = time_hms.split(":")
-        time_hms[0] = str(int(time_hms[0]) + 2)
+        # time_hms[0] = str(int(time_hms[0]))
+        time_hms[0] = int(time_hms[0])
+        if time_hms[0] < 22:
+            time_hms[0] = str(time_hms[0] + 2)
+        elif time_hms[0] == 23:
+            time_hms[0] = "1"
+        elif time_hms[0] == 22:
+            time_hms[0] = "0"
         time_received = ":".join(time_hms)
 
         message = message.as_string()
@@ -109,7 +126,9 @@ def get_values_emails():
             last_msgnum = int(fri_trade_cursor.fetchone()[0])
             if int(msgnum) > last_msgnum:
                 fri_trade_cursor.execute(insert_query)
-                print(f"{date_now()} {time_now_hms()} New value added!")
+                mes = "New value added!"
+                print(f"{date_now()} {time_now_hms()} {mes}")
+                log_sf_trader.warning(mes)
             # else:
             #     print(f"{msgnum} Value already in database")
 
@@ -123,7 +142,7 @@ def get_values_emails():
 
 def get_alert_emails_buy():
     imap = imaplib.IMAP4_SSL(email_server)
-    imap.login(azet_trade_alerts_login, azet_trade_alerts_passw)
+    imap.login(azet_buy_alerts_login, azet_buy_alerts_passw)
     imap.select("Inbox")
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 5m STRONG BUY (fake)")')
@@ -142,7 +161,13 @@ def get_alert_emails_buy():
 
         time_hms = timelist[4]
         time_hms = time_hms.split(":")
-        time_hms[0] = str(int(time_hms[0]) + 2)
+        time_hms[0] = int(time_hms[0])
+        if time_hms[0] < 22:
+            time_hms[0] = str(time_hms[0] + 2)
+        elif time_hms[0] == 23:
+            time_hms[0] = "1"
+        elif time_hms[0] == 22:
+            time_hms[0] = "0"
         time_received = ":".join(time_hms)
 
         # print("\n", msgnum, time_now_hms())
@@ -165,10 +190,15 @@ def get_alert_emails_buy():
         try:
             fri_trade_cursor.execute(select_query)
             last_msgnum = int(fri_trade_cursor.fetchone()[0])
+
             if int(msgnum) > last_msgnum:
                 fri_trade_cursor.execute(insert_query)
-                print(f"{date_now()} {time_now_hms()} New email alert added!")
+                mes = f"New {symbol} {timeframe} BUY email alert added!"
+                print(f"{date_now()} {time_now_hms()} {mes}")
+                log_sf_trader.warning(mes)
+
                 get_sl_tp(operation, symbol, timeframe)
+
             # else:
             #     print(f"{msgnum} Alert already in database")
 
@@ -181,37 +211,65 @@ def get_alert_emails_buy():
 
 
 def get_sl_tp(operation, symbol, timeframe):
+    def get_hour_from_time(time_received):
+        try:
+            return int(time_received[:2])
+        except ValueError:
+            return int(time_received[:1])
+
     select_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived from fri_trade.
                        EURCHF_1h_values_sf_strong order by id desc limit 1"""
     fri_trade_cursor.execute(select_query)
-    res = fri_trade_cursor.fetchone()
+    value_sel_query_result = fri_trade_cursor.fetchone()
+    value_data = {"time_received": value_sel_query_result[0],
+                  "hour_received": get_hour_from_time(value_sel_query_result[0]),
+                  "price_close": value_sel_query_result[1],
+                  "value_atrb_up": value_sel_query_result[2],
+                  "value_atrb_down": value_sel_query_result[3],
+                  "date_received": value_sel_query_result[4]}
 
-    time_received = res[0]
-    hour = int(time_received[:2])
-    price_close = res[1]
-    value_atrb_up = res[2]
-    value_atrb_down = res[3]
-    date_received = res[4]
+    select_query = f"""select timeReceived, dateReceived from fri_trade.EURCHF_1h_alert_emails_sf_strong
+                        order by id desc limit 1"""
+    fri_trade_cursor.execute(select_query)
+    alert_sel_query_result = fri_trade_cursor.fetchone()
+    alert_data = {"time_received": alert_sel_query_result[0],
+                  "hour_received": get_hour_from_time(value_sel_query_result[0]),
+                  "date_received": alert_sel_query_result[1]}
 
-    if hour == hour_now() and date_received == date_now():
+    time_date_condition = (value_data['hour_received'] == alert_data['hour_received'],
+                           alert_data['hour_received'] == hour_now(),
+                           value_data['date_received'] == alert_data['date_received'],
+                           alert_data['date_received'] == date_now())
+
+    if False not in time_date_condition:
         if operation == "buy":
-            stoploss_pips = price_close - value_atrb_down
-            stoploss_price = round(price_close - stoploss_pips, 5)
+            stoploss_pips = value_data['price_close'] - value_data['value_atrb_down']
+            # stoploss_price = round(value_data['price_close'] - stoploss_pips, 5)
 
-            takeprofit_price = value_atrb_up
-            takeprofit_pips = takeprofit_price - price_close
+            takeprofit_price = value_data['value_atrb_up']
+            takeprofit_pips = takeprofit_price - value_data['price_close']
         else:  # elif operation == "sell":
-            stoploss_pips = value_atrb_up - price_close
-            stoploss_price = round(price_close + stoploss_pips, 5)
+            stoploss_pips = value_data['value_atrb_up'] - value_data['price_close']
+            # stoploss_price = round(value_data['price_close'] + stoploss_pips, 5)
 
-            takeprofit_price = value_atrb_down
-            takeprofit_pips = price_close - takeprofit_price
+            takeprofit_price = value_data['value_atrb_down']
+            takeprofit_pips = value_data['price_close'] - takeprofit_price
 
-        print("OPENING TRADE!!!")
-        # communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe)
+        mes = f"OPENING BUY TRADE {symbol} {timeframe}"
+        print(f"{date_now()} {time_now_hms()} {mes}")
+        log_sf_trader.warning(mes)
+        print("Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        a = 0
+        if a == 1:
+            communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
+
     else:
-        print("Wrong value in database - old one, hour/date condition is not satisfied")
-        print(f"Hour {hour}, hour_now {hour_now()}, date rec {date_received}, date_now {date_now()}")
+        print("OLD value in database - see log for details!")
+        mes = f"""value hour_rec {value_data['hour_received']} -> alert hour_rec {alert_data['hour_received']} ->
+                   hour_now {hour_now()},
+                   value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
+                   date_now {date_now()}"""
+        log_sf_trader.warning(mes)
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
@@ -227,14 +285,17 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def main():
-    print(f"{date_now()} {time_now_hms()} Started")
+    print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...            See log for details.""")
     while True:
-        print(f"{date_now()} {time_now_hms()} Checking...\n")
+        log_sf_trader.info("Getting values")
         get_values_emails()
+
+        log_sf_trader.info("Getting alerts")
         get_alert_emails_buy()
 
-        print(f"\n{date_now()} {time_now_hms()} Sleeping...\n")
-        time.sleep(60)
+        sleep_secs = 60
+        log_sf_trader.info(f"Sleeping {sleep_secs}s...")
+        time.sleep(sleep_secs)
     # pass
 
 
