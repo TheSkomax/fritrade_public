@@ -287,5 +287,5 @@ def open_trade(operation, price_close, takeprofit_pips, stoploss_pips, symbol, t
     xtb.logout()
 
 
-# open_trade(operation=argv[1], price_close=argv[2], takeprofit_pips=argv[3], stoploss_pips=argv[4], symbol=argv[5],
-#            timeframe=argv[6])
+open_trade(operation=argv[1], price_close=argv[2], takeprofit_pips=argv[3], stoploss_pips=argv[4], symbol=argv[5],
+           timeframe=argv[6])
