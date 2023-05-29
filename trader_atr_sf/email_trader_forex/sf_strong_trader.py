@@ -53,14 +53,12 @@ log_sf_trader.addHandler(file_handler)
 def time_now_hms():
     time_object = datetime.now()
     time_actual = time_object.strftime("%H:%M:%S")
-    # print(time_actual)
     return time_actual
 
 
 def time_now_ms():
     time_object = datetime.now()
     time_actual = time_object.strftime("%M:%S")
-    # print(time_actual)
     return time_actual
 
 
@@ -217,24 +215,26 @@ def get_sl_tp(operation, symbol, timeframe):
         except ValueError:
             return int(time_received[:1])
 
-    select_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived from fri_trade.
+    value_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived, message_number from fri_trade.
                        EURCHF_1h_values_sf_strong order by id desc limit 1"""
-    fri_trade_cursor.execute(select_query)
+    fri_trade_cursor.execute(value_query)
     value_sel_query_result = fri_trade_cursor.fetchone()
     value_data = {"time_received": value_sel_query_result[0],
                   "hour_received": get_hour_from_time(value_sel_query_result[0]),
                   "price_close": value_sel_query_result[1],
                   "value_atrb_up": value_sel_query_result[2],
                   "value_atrb_down": value_sel_query_result[3],
-                  "date_received": value_sel_query_result[4]}
+                  "date_received": value_sel_query_result[4],
+                  "message_number": value_sel_query_result[5]}
 
-    select_query = f"""select timeReceived, dateReceived from fri_trade.EURCHF_1h_alert_emails_sf_strong
+    alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong
                         order by id desc limit 1"""
-    fri_trade_cursor.execute(select_query)
+    fri_trade_cursor.execute(alert_query)
     alert_sel_query_result = fri_trade_cursor.fetchone()
     alert_data = {"time_received": alert_sel_query_result[0],
-                  "hour_received": get_hour_from_time(value_sel_query_result[0]),
-                  "date_received": alert_sel_query_result[1]}
+                  "hour_received": get_hour_from_time(alert_sel_query_result[0]),
+                  "date_received": alert_sel_query_result[1],
+                  "message_number": alert_sel_query_result[2]}
 
     time_date_condition = (value_data['hour_received'] == alert_data['hour_received'],
                            alert_data['hour_received'] == hour_now(),
@@ -258,7 +258,15 @@ def get_sl_tp(operation, symbol, timeframe):
         mes = f"OPENING BUY TRADE {symbol} {timeframe}"
         print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.warning(mes)
+
+        mes = f"""value hour_rec {value_data['hour_received']} -> alert hour_rec {alert_data['hour_received']} ->
+                   hour_now {hour_now()},
+                   value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
+                   date_now {date_now()}, alert {alert_data['message_number']}"""
+        log_sf_trader.warning(mes)
+
         print("Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
         a = 0
         if a == 1:
             communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
@@ -268,8 +276,8 @@ def get_sl_tp(operation, symbol, timeframe):
         mes = f"""value hour_rec {value_data['hour_received']} -> alert hour_rec {alert_data['hour_received']} ->
                    hour_now {hour_now()},
                    value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
-                   date_now {date_now()}"""
-        log_sf_trader.warning(mes)
+                   date_now {date_now()}, alert {alert_data['message_number']}"""
+        log_sf_trader.error(mes)
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
@@ -286,7 +294,7 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 def main():
     print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...            See log for details.""")
-    log_sf_trader.info("STARTED")
+    log_sf_trader.info("STARTED -------------------------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
         conditions = (check_time == "00:20", check_time == "0:20",
@@ -296,9 +304,11 @@ def main():
         if True in conditions:
             log_sf_trader.info("Getting values")
             get_values_emails()
+            log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting alerts")
             get_alert_emails_buy()
+            log_sf_trader.info("Done")
 
         time.sleep(1)
 
