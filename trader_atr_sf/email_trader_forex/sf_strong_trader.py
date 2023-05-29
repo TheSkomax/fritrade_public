@@ -286,17 +286,21 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 def main():
     print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...            See log for details.""")
+    log_sf_trader.info("STARTED")
     while True:
-        log_sf_trader.info("Getting values")
-        get_values_emails()
+        check_time = time_now_ms()
+        conditions = (check_time == "00:20", check_time == "0:20",
+                      check_time == "01:00", check_time == "1:00",
+                      check_time == "02:00", check_time == "2:00",)
 
-        log_sf_trader.info("Getting alerts")
-        get_alert_emails_buy()
+        if True in conditions:
+            log_sf_trader.info("Getting values")
+            get_values_emails()
 
-        sleep_secs = 60
-        log_sf_trader.info(f"Sleeping {sleep_secs}s...")
-        time.sleep(sleep_secs)
-    # pass
+            log_sf_trader.info("Getting alerts")
+            get_alert_emails_buy()
+
+        time.sleep(1)
 
 
 if __name__ == "__main__":
