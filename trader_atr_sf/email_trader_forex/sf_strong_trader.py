@@ -143,7 +143,7 @@ def get_alert_emails_buy():
     imap.login(azet_buy_alerts_login, azet_buy_alerts_passw)
     imap.select("Inbox")
 
-    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 5m STRONG BUY (fake)")')
+    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
     for msgnum in msgnums[0].split():
         msgnum = msgnum.decode("utf-8")
         # TODO if msgum > ako last_msgnum z databazy tak nech ten mail vytiahne, inak nie
@@ -265,7 +265,7 @@ def get_sl_tp(operation, symbol, timeframe):
                    date_now {date_now()}, alert {alert_data['message_number']}"""
         log_sf_trader.warning(mes)
 
-        print("Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("\n!!!!!!!!! Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
         a = 0
         if a == 1:
