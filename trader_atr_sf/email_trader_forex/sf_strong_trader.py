@@ -155,7 +155,7 @@ def get_alert_emails_buy():
         date_raw = message.get('date')
 
         timelist = date_raw.split(" ")
-        date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%B').tm_mon}.{timelist[3]}"
+        date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
 
         time_hms = timelist[4]
         time_hms = time_hms.split(":")
@@ -293,20 +293,20 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def main():
-    print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...            See log for details.""")
-    log_sf_trader.info("STARTED -------------------------------------------------------------------------------------")
+    print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
+            \nCheck times are set to (min:sec) MAIN 00:20, BACKUP 01:00""")
+    log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
         conditions = (check_time == "00:20", check_time == "0:20",
-                      check_time == "01:00", check_time == "1:00",
-                      check_time == "02:00", check_time == "2:00",)
+                      check_time == "01:00", check_time == "1:00",)
 
         if True in conditions:
             log_sf_trader.info("Getting values")
             get_values_emails()
             log_sf_trader.info("Done")
 
-            log_sf_trader.info("Getting alerts")
+            log_sf_trader.info("Getting buy alerts")
             get_alert_emails_buy()
             log_sf_trader.info("Done")
 
