@@ -92,7 +92,7 @@ def get_values_emails():
         subject = message.get('subject')
         date_raw = message.get('date')
         timelist = date_raw.split(" ")
-        date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%B').tm_mon}.{timelist[3]}"
+        date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
         time_hms = timelist[4]
         time_hms = time_hms.split(":")
         # time_hms[0] = str(int(time_hms[0]))
@@ -293,8 +293,9 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def main():
-    print(f"""--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
-            \nCheck times are set to (min:sec) MAIN 00:20, BACKUP 01:00""")
+    print(f"""\n--- SmartForex Strong signal email trader ---
+           {date_now()} {time_now_hms()} Running...
+           Check times are set to (min:sec) MAIN 00:20, BACKUP 01:00""")
     log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
