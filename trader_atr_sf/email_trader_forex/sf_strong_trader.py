@@ -12,13 +12,19 @@ from datetime import date
 from datetime import datetime
 import subprocess
 import logging
+from twilio.rest import Client
 
 
 dotenv.load_dotenv(".env")
 table_name_part = ""
 active_charts = [{"name": "US500_1h", "is_currency": False},
                  {"name": "EURCHF_1h", "is_currency": True}]
-
+twilio_credentials = {
+    "twilio_sid": os.environ["twilio_sid"],
+    "twilio_token": os.environ["twilio_token"],
+    "twilio_number": os.environ["twilio_number"],
+    "my_phone_number": os.environ["my_phone_number"]
+}
 
 # ---------------- EMAIL ----------------
 email_server = "imap.azet.sk"
@@ -265,11 +271,13 @@ def get_sl_tp(operation, symbol, timeframe):
                    date_now {date_now()}, alert {alert_data['message_number']}"""
         log_sf_trader.warning(mes)
 
-        print("\n!!!!!!!!! Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        send_sms(f"{symbol} {timeframe} strong {operation}")
 
-        a = 0
-        if a == 1:
+        allow_comm = True
+        if allow_comm:
             communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
+        else:
+            print("\n!!!!!!!!! Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     else:
         print("OLD value in database - see log for details!")
@@ -290,6 +298,15 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
                          "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/api_communicator.py",
                          operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe
                          ])
+
+
+def send_sms(text_message):
+    client = Client(twilio_credentials["twilio_sid"], twilio_credentials["twilio_token"])
+    message = client.messages.create(
+        body=text_message,
+        from_=twilio_credentials["twilio_number"],
+        to=twilio_credentials["my_phone_number"]
+    )
 
 
 def main():
