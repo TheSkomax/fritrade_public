@@ -84,9 +84,16 @@ def date_now():
 
 
 def get_values_emails():
-    imap = imaplib.IMAP4_SSL(email_server)
-    imap.login(azet_values_report_login, azet_values_report_passw)
-    imap.select("Inbox")
+    logged_in = False
+    while not logged_in:
+        try:
+            imap = imaplib.IMAP4_SSL(email_server)
+            imap.login(azet_values_report_login, azet_values_report_passw)
+            imap.select("Inbox")
+            logged_in = True
+        except ConnectionResetError:
+            log_sf_trader.error("ConnectionResetError")
+            time.sleep(1)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
     for msgnum in msgnums[0].split():
@@ -145,9 +152,16 @@ def get_values_emails():
 
 
 def get_alert_emails_buy():
-    imap = imaplib.IMAP4_SSL(email_server)
-    imap.login(azet_buy_alerts_login, azet_buy_alerts_passw)
-    imap.select("Inbox")
+    logged_in = False
+    while not logged_in:
+        try:
+            imap = imaplib.IMAP4_SSL(email_server)
+            imap.login(azet_buy_alerts_login, azet_buy_alerts_passw)
+            imap.select("Inbox")
+            logged_in = True
+        except ConnectionResetError:
+            log_sf_trader.error("ConnectionResetError")
+            time.sleep(1)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
     for msgnum in msgnums[0].split():
@@ -307,11 +321,11 @@ def send_sms(text_message):
         from_=twilio_credentials["twilio_number"],
         to=twilio_credentials["my_phone_number"]
     )
+    log_sf_trader.warning("SMS has been sent!")
 
 
 def main():
-    print(f"""\n--- SmartForex Strong signal email trader ---
-           {date_now()} {time_now_hms()} Running...
+    print(f"""\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
            Check times are set to (min:sec) MAIN 00:20, BACKUP 01:00""")
     log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
@@ -333,3 +347,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
