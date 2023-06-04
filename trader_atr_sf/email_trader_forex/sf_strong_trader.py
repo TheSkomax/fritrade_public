@@ -84,16 +84,7 @@ def date_now():
 
 
 def get_values_emails():
-    logged_in = False
-    while not logged_in:
-        try:
-            imap = imaplib.IMAP4_SSL(email_server)
-            imap.login(azet_values_report_login, azet_values_report_passw)
-            imap.select("Inbox")
-            logged_in = True
-        except ConnectionResetError:
-            log_sf_trader.error("ConnectionResetError")
-            time.sleep(1)
+    imap = get_imap(azet_values_report_login, azet_values_report_passw)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
     for msgnum in msgnums[0].split():
@@ -152,16 +143,7 @@ def get_values_emails():
 
 
 def get_alert_emails_buy():
-    logged_in = False
-    while not logged_in:
-        try:
-            imap = imaplib.IMAP4_SSL(email_server)
-            imap.login(azet_buy_alerts_login, azet_buy_alerts_passw)
-            imap.select("Inbox")
-            logged_in = True
-        except ConnectionResetError:
-            log_sf_trader.error("ConnectionResetError")
-            time.sleep(1)
+    imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
     for msgnum in msgnums[0].split():
@@ -226,6 +208,21 @@ def get_alert_emails_buy():
 
     imap.close()
     imap.logout()
+
+
+def get_imap(login, passw):
+    logged_in = False
+    log_sf_trader.info("Getting imap")
+    while not logged_in:
+        try:
+            imap = imaplib.IMAP4_SSL(email_server)
+            imap.login(login, passw)
+            imap.select("Inbox")
+            logged_in = True
+            return imap
+        except ConnectionResetError:
+            log_sf_trader.error("ConnectionResetError")
+            time.sleep(1)
 
 
 def get_sl_tp(operation, symbol, timeframe):
