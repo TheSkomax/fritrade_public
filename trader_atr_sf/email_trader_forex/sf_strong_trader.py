@@ -142,7 +142,7 @@ def get_values_emails():
     imap.logout()
 
 
-def get_alert_emails_buy():
+def get_alerts_strong_buy():
     imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
@@ -220,8 +220,8 @@ def get_imap(login, passw):
             imap.select("Inbox")
             logged_in = True
             return imap
-        except ConnectionResetError:
-            log_sf_trader.error("ConnectionResetError")
+        except Exception as error:
+            log_sf_trader.error(f"{type(error).__name__}, {error}")
             time.sleep(1)
 
 
@@ -336,7 +336,7 @@ def main():
             log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting buy alerts")
-            get_alert_emails_buy()
+            get_alerts_strong_buy()
             log_sf_trader.info("Done")
 
         time.sleep(1)
@@ -345,3 +345,12 @@ def main():
 if __name__ == "__main__":
     main()
 
+# TODO bud to urobit tak, ze to zisti strong signal a pocka 2-3 sviecky a cekne, ci tam ten signal stale je
+#  to asi bude dost tazke, mozno zbytocne zlozite
+
+# TODO druha moznost je kontrolovat aj klasicke BUY/SELL signaly z toho indikatora a otvorit obchod az ked budu dva
+#  sell - strong sell alebo buy - buy a tak.
+#     A bude to posielat sms upozornenia typu "EURCHF 1h buy" potom "EURCHF 1h strong buy" a potom manualne ceknem ci
+#     je vhodne otvorit poziciu a manualne ju otvorim alebo prikazem FRIDAY, ktora si vezme SL/TP udaje a otvori,
+#     alebo to nejak inak zautomatizujem - twilio by aj dostavalo sms odomna? Asi nie, to by bolo zlozite, tam skusit
+#     skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
