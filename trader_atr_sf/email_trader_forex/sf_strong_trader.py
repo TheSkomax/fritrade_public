@@ -284,11 +284,12 @@ def get_sl_tp(operation, symbol, timeframe):
 
         send_sms(f"{symbol} {timeframe} strong {operation}")
 
-        allow_comm = True
-        if allow_comm:
+        manual_only = True
+        if not manual_only:
             communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
         else:
-            print("\n!!!!!!!!! Communicator is OFF !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("\nCommunicator is OFF!!!!!\n")
+            log_sf_trader.warning("Communicator is OFF!!! - only manual trades")
 
     else:
         print("OLD value in database - see log for details!")
@@ -318,7 +319,7 @@ def send_sms(text_message):
         from_=twilio_credentials["twilio_number"],
         to=twilio_credentials["my_phone_number"]
     )
-    log_sf_trader.warning("SMS has been sent!")
+    log_sf_trader.warning(f"SMS has been sent! {text_message}")
 
 
 def main():
