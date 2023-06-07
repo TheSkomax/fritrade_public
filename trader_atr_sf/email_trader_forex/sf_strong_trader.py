@@ -89,8 +89,17 @@ def get_values_emails():
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
     for msgnum in msgnums[0].split():
         msgnum = msgnum.decode("utf-8")
-        _, data = imap.fetch(msgnum, "(RFC822)")
-        message = email.message_from_bytes(data[0][1])
+
+        message_ok = False
+        while not message_ok:
+            try:
+                time.sleep(0.05)
+                _, data = imap.fetch(msgnum, "(RFC822)")
+                message = email.message_from_bytes(data[0][1])
+                message_ok = True
+            except Exception as error:
+                log_sf_trader.error(f"get_values_emails: {type(error).__name__}, {error}")
+                time.sleep(1)
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -149,8 +158,17 @@ def get_alerts_strong_buy():
     for msgnum in msgnums[0].split():
         msgnum = msgnum.decode("utf-8")
         # TODO if msgum > ako last_msgnum z databazy tak nech ten mail vytiahne, inak nie
-        _, data = imap.fetch(msgnum, "(RFC822)")
-        message = email.message_from_bytes(data[0][1])
+
+        message_ok = False
+        while not message_ok:
+            try:
+                time.sleep(0.05)
+                _, data = imap.fetch(msgnum, "(RFC822)")
+                message = email.message_from_bytes(data[0][1])
+                message_ok = True
+            except Exception as error:
+                log_sf_trader.error(f"get_alerts_strong_buy: {type(error).__name__}, {error}")
+                time.sleep(1)
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -215,13 +233,14 @@ def get_imap(login, passw):
     log_sf_trader.info("Getting imap")
     while not logged_in:
         try:
+            time.sleep(0.01)
             imap = imaplib.IMAP4_SSL(email_server)
             imap.login(login, passw)
             imap.select("Inbox")
             logged_in = True
             return imap
         except Exception as error:
-            log_sf_trader.error(f"{type(error).__name__}, {error}")
+            log_sf_trader.error(f"get_imap: {type(error).__name__}, {error}")
             time.sleep(1)
 
 
@@ -329,7 +348,7 @@ def main():
     while True:
         check_time = time_now_ms()
         conditions = (check_time == "00:20", check_time == "0:20",
-                      check_time == "01:00", check_time == "1:00",)
+                      check_time == "02:00", check_time == "2:00",)
 
         if True in conditions:
             log_sf_trader.info("Getting values")
