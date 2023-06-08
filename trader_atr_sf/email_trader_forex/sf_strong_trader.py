@@ -93,13 +93,13 @@ def get_values_emails():
         message_ok = False
         while not message_ok:
             try:
-                time.sleep(0.05)
+                time.sleep(1)
                 _, data = imap.fetch(msgnum, "(RFC822)")
                 message = email.message_from_bytes(data[0][1])
                 message_ok = True
             except Exception as error:
                 log_sf_trader.error(f"get_values_emails: {type(error).__name__}, {error}")
-                time.sleep(1)
+                time.sleep(10)
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -162,13 +162,13 @@ def get_alerts_strong_buy():
         message_ok = False
         while not message_ok:
             try:
-                time.sleep(0.05)
+                time.sleep(1)
                 _, data = imap.fetch(msgnum, "(RFC822)")
                 message = email.message_from_bytes(data[0][1])
                 message_ok = True
             except Exception as error:
                 log_sf_trader.error(f"get_alerts_strong_buy: {type(error).__name__}, {error}")
-                time.sleep(1)
+                time.sleep(10)
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -343,12 +343,12 @@ def send_sms(text_message):
 
 def main():
     print(f"""\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
-           Check times are set to (min:sec) MAIN 00:20, BACKUP 01:00""")
+           Check times are set to (min:sec) MAIN 00:20, BACKUP 04:00""")
     log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
         conditions = (check_time == "00:20", check_time == "0:20",
-                      check_time == "02:00", check_time == "2:00",)
+                      check_time == "04:00", check_time == "4:00",)
 
         if True in conditions:
             log_sf_trader.info("Getting values")
