@@ -100,6 +100,8 @@ def get_values_emails():
             except Exception as error:
                 log_sf_trader.error(f"get_values_emails: {type(error).__name__}, {error}")
                 time.sleep(10)
+                #         TODO ak bude sekunda malo tak tam pridat aby sa ten server nepojebal
+
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -169,6 +171,8 @@ def get_alerts_strong_buy():
             except Exception as error:
                 log_sf_trader.error(f"get_alerts_strong_buy: {type(error).__name__}, {error}")
                 time.sleep(10)
+                #         TODO ak bude sekunda malo tak tam pridat aby sa ten server nepojebal
+
 
         sender = message.get('From')
         subject = message.get('subject')
@@ -342,8 +346,8 @@ def send_sms(text_message):
 
 
 def main():
-    print(f"""\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
-           Check times are set to (min:sec) MAIN 00:20, BACKUP 04:00""")
+    print(f"""\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...""")
+    print("Check times are set to (min:sec) MAIN 00:20, BACKUP 01:00")
     log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
