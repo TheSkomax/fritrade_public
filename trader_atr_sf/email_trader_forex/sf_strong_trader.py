@@ -216,7 +216,6 @@ def get_alerts_strong_buy():
                 log_sf_trader.warning(mes)
 
                 get_sl_tp(operation, symbol, timeframe)
-
             # else:
             #     print(f"{msgnum} Alert already in database")
 
@@ -240,8 +239,8 @@ def get_imap(login, passw):
             logged_in = True
             return imap
         except Exception as error:
-            log_sf_trader.error(f"get_imap: {type(error).__name__}, {error}")
-            time.sleep(1)
+            log_sf_trader.error(f"get_imap: {type(error).__name__}: {error}")
+            time.sleep(3)
 
 
 def get_sl_tp(operation, symbol, timeframe):
@@ -351,6 +350,7 @@ def main():
                       check_time == "04:00", check_time == "4:00",)
 
         if True in conditions:
+            log_sf_trader.info("Starting run")
             log_sf_trader.info("Getting values")
             get_values_emails()
             log_sf_trader.info("Done")
@@ -358,6 +358,7 @@ def main():
             log_sf_trader.info("Getting buy alerts")
             get_alerts_strong_buy()
             log_sf_trader.info("Done")
+            log_sf_trader.info("Run over")
 
         time.sleep(1)
 
