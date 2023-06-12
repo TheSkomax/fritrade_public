@@ -84,71 +84,81 @@ def date_now():
 
 
 def get_values_emails():
-    imap = get_imap(azet_values_report_login, azet_values_report_passw)
-
-    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
-    for msgnum in msgnums[0].split():
-        msgnum = msgnum.decode("utf-8")
-
-        message_ok = False
-        while not message_ok:
-            try:
-                time.sleep(1)
-                _, data = imap.fetch(msgnum, "(RFC822)")
-                message = email.message_from_bytes(data[0][1])
-                message_ok = True
-            except Exception as error:
-                log_sf_trader.error(f"get_values_emails: {type(error).__name__}, {error}")
-                time.sleep(10)
-
-        sender = message.get('From')
-        subject = message.get('subject')
-        date_raw = message.get('date')
-        timelist = date_raw.split(" ")
-        date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
-        time_hms = timelist[4]
-        time_hms = time_hms.split(":")
-        # time_hms[0] = str(int(time_hms[0]))
-        time_hms[0] = int(time_hms[0])
-        if time_hms[0] < 22:
-            time_hms[0] = str(time_hms[0] + 2)
-        elif time_hms[0] == 23:
-            time_hms[0] = "1"
-        elif time_hms[0] == 22:
-            time_hms[0] = "0"
-        time_received = ":".join(time_hms)
-
-        message = message.as_string()
-        message = message.replace('\n', " ")
-        message = message.split(" ")
-
-        atrup_value = round(float(message[message.index("ATR-upper") + 1]), 5)
-        atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)
-        price_close = round(float(message[message.index('2;">Price') + 1]), 5)
-
-        insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
-                            message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
-                            '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
-                            {atrlow_value}, {False})"""
-        select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
-                           message_number desc limit 1"""
+    success = False
+    while not success:
         try:
-            fri_trade_cursor.execute(select_query)
-            last_msgnum = int(fri_trade_cursor.fetchone()[0])
-            if int(msgnum) > last_msgnum:
-                fri_trade_cursor.execute(insert_query)
-                mes = "New value added!"
-                print(f"{date_now()} {time_now_hms()} {mes}")
-                log_sf_trader.warning(mes)
-            # else:
-            #     print(f"{msgnum} Value already in database")
+            imap = get_imap(azet_values_report_login, azet_values_report_passw)
 
-        except TypeError:
-            print(f"{msgnum} Database empty - first email!")
-            fri_trade_cursor.execute(insert_query)
+            _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
+            for msgnum in msgnums[0].split():
+                msgnum = msgnum.decode("utf-8")
 
-    imap.close()
-    imap.logout()
+                message_ok = False
+                while not message_ok:
+                    try:
+                        time.sleep(1)
+                        _, data = imap.fetch(msgnum, "(RFC822)")
+                        message = email.message_from_bytes(data[0][1])
+                        message_ok = True
+                    except Exception as error:
+                        log_sf_trader.error(f"get_values_emails 2: {type(error).__name__}, {error}")
+                        time.sleep(10)
+
+                sender = message.get('From')
+                subject = message.get('subject')
+                date_raw = message.get('date')
+                timelist = date_raw.split(" ")
+                date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
+                time_hms = timelist[4]
+                time_hms = time_hms.split(":")
+                # time_hms[0] = str(int(time_hms[0]))
+                time_hms[0] = int(time_hms[0])
+                if time_hms[0] < 22:
+                    time_hms[0] = str(time_hms[0] + 2)
+                elif time_hms[0] == 23:
+                    time_hms[0] = "1"
+                elif time_hms[0] == 22:
+                    time_hms[0] = "0"
+                time_received = ":".join(time_hms)
+
+                message = message.as_string()
+                message = message.replace('\n', " ")
+                message = message.split(" ")
+
+                atrup_value = round(float(message[message.index("ATR-upper") + 1]), 5)
+                atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)
+                price_close = round(float(message[message.index('2;">Price') + 1]), 5)
+
+                insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
+                                    message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
+                                    '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
+                                    {atrlow_value}, {False})"""
+                select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
+                                   message_number desc limit 1"""
+                try:
+                    fri_trade_cursor.execute(select_query)
+                    last_msgnum = int(fri_trade_cursor.fetchone()[0])
+                    if int(msgnum) > last_msgnum:
+                        fri_trade_cursor.execute(insert_query)
+                        mes = "New value added!"
+                        print(f"{date_now()} {time_now_hms()} {mes}")
+                        log_sf_trader.warning(mes)
+                    # else:
+                    #     print(f"{msgnum} Value already in database")
+
+                except TypeError:
+                    print(f"{msgnum} Database empty - first email!")
+                    fri_trade_cursor.execute(insert_query)
+
+            imap.close()
+            imap.logout()
+            success = True
+
+        except Exception as error:
+            log_sf_trader.error(f"get_values_emails 1: {type(error).__name__}, {error}")
+            imap.close()
+            imap.logout()
+            time.sleep(10)
 
 
 def get_alerts_strong_buy():
