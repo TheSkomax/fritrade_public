@@ -85,12 +85,18 @@ def date_now():
 
 def get_values_emails():
     success = False
+    log_sf_trader.info("get_values_emails: Getting imap")
+
     while not success:
         try:
-            imap = get_imap(azet_values_report_login, azet_values_report_passw)
+            time.sleep(0.05)
+            imap = imaplib.IMAP4_SSL(email_server)
+            imap.login(azet_values_report_login, azet_values_report_passw)
+            imap.select("Inbox")
 
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
             for msgnum in msgnums[0].split():
+                time.sleep(0.05)
                 msgnum = msgnum.decode("utf-8")
 
                 message_ok = False
@@ -101,7 +107,7 @@ def get_values_emails():
                         message = email.message_from_bytes(data[0][1])
                         message_ok = True
                     except Exception as error:
-                        log_sf_trader.error(f"get_values_emails 2: {type(error).__name__}, {error}")
+                        log_sf_trader.error(f"get_values_emails 1: {type(error).__name__}, {error}")
                         time.sleep(10)
 
                 sender = message.get('From')
@@ -150,15 +156,22 @@ def get_values_emails():
                     print(f"{msgnum} Database empty - first email!")
                     fri_trade_cursor.execute(insert_query)
 
-            imap.close()
-            imap.logout()
-            success = True
+                success = True
+                imap.close()
+                imap.logout()
 
         except Exception as error:
-            log_sf_trader.error(f"get_values_emails 1: {type(error).__name__}, {error}")
-            imap.close()
-            imap.logout()
-            time.sleep(10)
+            log_sf_trader.error(f"get_values_emails 2: {type(error).__name__}: {error}")
+            # imap.close()
+            # imap.logout()
+            time.sleep(30)
+
+
+# except Exception as error:
+#     log_sf_trader.error(f"get_values_emails 3: {type(error).__name__}, {error}")
+#     imap.close()
+#     imap.logout()
+#     time.sleep(10)
 
 
 def get_alerts_strong_buy():
