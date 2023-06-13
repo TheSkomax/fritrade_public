@@ -157,15 +157,15 @@ def get_values_emails():
                     fri_trade_cursor.execute(insert_query)
 
                 success = True
-                imap.close()
-                imap.logout()
+
+            imap.close()
+            imap.logout()
 
         except Exception as error:
             log_sf_trader.error(f"get_values_emails 2: {type(error).__name__}: {error}")
             # imap.close()
             # imap.logout()
             time.sleep(30)
-
 
 # except Exception as error:
 #     log_sf_trader.error(f"get_values_emails 3: {type(error).__name__}, {error}")
@@ -364,8 +364,8 @@ def send_sms(text_message):
 
 
 def main():
-    print(f"""\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...
-           Check times are set to (min:sec) MAIN 00:20, BACKUP 04:00""")
+    print(f"\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...")
+    print("Check times are set to (min:sec) MAIN 00:20, BACKUP 04:00")
     log_sf_trader.info("STARTED ---------------------------------------------------------------------")
     while True:
         check_time = time_now_ms()
@@ -398,3 +398,6 @@ if __name__ == "__main__":
 #     je vhodne otvorit poziciu a manualne ju otvorim alebo prikazem FRIDAY, ktora si vezme SL/TP udaje a otvori,
 #     alebo to nejak inak zautomatizujem - twilio by aj dostavalo sms odomna? Asi nie, to by bolo zlozite, tam skusit
 #     skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
+
+# TODO ak to bude stale davat broken pipe tak skusit urobit samostatne .py skripty pre get_values_emails a to druhe
+#   a nech to spusta cez subprocess???
