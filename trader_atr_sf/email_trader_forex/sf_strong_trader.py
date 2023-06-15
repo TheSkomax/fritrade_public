@@ -91,7 +91,7 @@ def get_values_emails():
         try:
             time.sleep(0.05)
             imap = imaplib.IMAP4_SSL(email_server)
-            imap.login(azet_values_report_login, azet_values_report_passw)
+            imap.login(values_report_login, values_report_passw)
             imap.select("Inbox")
 
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
