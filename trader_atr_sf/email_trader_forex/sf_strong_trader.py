@@ -90,7 +90,7 @@ def get_values_emails():
     while not success:
         try:
             time.sleep(0.05)
-            imap = imaplib.IMAP4_SSL(email_server)
+            imap = imaplib.IMAP4_SSL("imap.gmail.com")
             imap.login(values_report_login, values_report_passw)
             imap.select("Inbox")
 
