@@ -31,8 +31,8 @@ email_server = "imap.azet.sk"
 azet_buy_alerts_login = os.environ["azet_buy_alerts_login"]
 azet_buy_alerts_passw = os.environ["azet_buy_alerts_passw"]
 
-azet_values_report_login = os.environ["azet_values_report_login"]
-azet_values_report_passw = os.environ["azet_values_report_passw"]
+values_report_login = os.environ["values_report_login"]
+values_report_passw = os.environ["values_report_passw"]
 
 
 # ---------------- MYSQL ----------------
