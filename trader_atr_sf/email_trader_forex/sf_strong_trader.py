@@ -100,11 +100,11 @@ def get_values_emails_gmail():
             price_close = values["price_close"]
 
             insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
-                                                message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
-                                                '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
-                                                {atrlow_value}, {False})"""
+                                message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
+                                '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
+                                {atrlow_value}, {False})"""
             select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
-                                               message_number desc limit 1"""
+                               message_number desc limit 1"""
             try:
                 fri_trade_cursor.execute(select_query)
                 last_msgnum = int(fri_trade_cursor.fetchone()[0])
