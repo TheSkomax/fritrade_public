@@ -9,13 +9,16 @@ import re
 import time
 import urllib
 from urllib import request
+import os
+import dotenv
 
+dotenv.load_dotenv(".env")
 
 GOOGLE_ACCOUNTS_BASE_URL = "https://accounts.google.com"
-GOOGLE_CLIENT_ID = "1094522478046-alnj9hhpu22kchck9mhbo2l9c68s29qo.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-GOOGLE_REFRESH_TOKEN = "1//09rsoWfs51OFyCgYIARAAGAkSNwF-L9IrRGwnKOs82vPHa9px4eQbOc74i4PQIvRq_xdOwWvJ2J9aDMFxCaoFKznaY6siqQyxLAI"
-GOOGLE_EMAIL = 'michal.jendrisak.knm@gmail.com'  # The e-mail used to obtain the above credentials
+GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
+GOOGLE_REFRESH_TOKEN = os.environ["GOOGLE_REFRESH_TOKEN"]
+GOOGLE_EMAIL = os.environ["GOOGLE_EMAIL"]  # The e-mail used to obtain the above credentials
 VIEW_X_LAST = 1  # Information from the last 10 received e-mails will be displayed
 
 
