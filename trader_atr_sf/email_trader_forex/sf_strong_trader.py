@@ -13,7 +13,7 @@ from datetime import datetime
 import subprocess
 import logging
 from twilio.rest import Client
-
+import gmail_imap
 
 dotenv.load_dotenv(".env")
 table_name_part = ""
@@ -83,6 +83,50 @@ def date_now():
     return date_actual
 
 
+def get_values_emails_gmail():
+    success = False
+    log_sf_trader.info("get_values_emails: Getting GMAIL imap")
+
+    while not success:
+        try:
+            values = gmail_imap.start()
+            msgnum = values["msgnum"]
+            sender = values["sender"]
+            subject = values["subject"]
+            date_dmy = values["date_dmy"]
+            time_received = values["time_received"]
+            atrup_value = values["atrup_value"]
+            atrlow_value = values["atrlow_value"]
+            price_close = values["price_close"]
+
+            insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
+                                                message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
+                                                '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
+                                                {atrlow_value}, {False})"""
+            select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
+                                               message_number desc limit 1"""
+            try:
+                fri_trade_cursor.execute(select_query)
+                last_msgnum = int(fri_trade_cursor.fetchone()[0])
+                if int(msgnum) > last_msgnum:
+                    fri_trade_cursor.execute(insert_query)
+                    mes = "New value added!"
+                    print(f"{date_now()} {time_now_hms()} {mes}")
+                    log_sf_trader.warning(mes)
+                # else:
+                #     print(f"{msgnum} Value already in database")
+
+            except TypeError:
+                print(f"{msgnum} Database empty - first email!")
+                fri_trade_cursor.execute(insert_query)
+
+            success = True
+
+        except Exception as error:
+            log_sf_trader.error(f"get_values_emails_gmail: {type(error).__name__}: {error}")
+            time.sleep(30)
+
+
 def get_values_emails():
     success = False
     log_sf_trader.info("get_values_emails: Getting imap")
@@ -113,12 +157,14 @@ def get_values_emails():
                 sender = message.get('From')
                 subject = message.get('subject')
                 date_raw = message.get('date')
+
                 timelist = date_raw.split(" ")
                 date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
                 time_hms = timelist[4]
                 time_hms = time_hms.split(":")
                 # time_hms[0] = str(int(time_hms[0]))
                 time_hms[0] = int(time_hms[0])
+
                 if time_hms[0] < 22:
                     time_hms[0] = str(time_hms[0] + 2)
                 elif time_hms[0] == 23:
@@ -375,7 +421,8 @@ def main():
         if True in conditions:
             log_sf_trader.info("Starting run")
             log_sf_trader.info("Getting values")
-            get_values_emails()
+            # get_values_emails()
+            get_values_emails_gmail()
             log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting buy alerts")
