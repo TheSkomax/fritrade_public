@@ -31,8 +31,8 @@ email_server = "imap.azet.sk"
 azet_buy_alerts_login = os.environ["azet_buy_alerts_login"]
 azet_buy_alerts_passw = os.environ["azet_buy_alerts_passw"]
 
-azet_values_report_login = os.environ["azet_values_report_login"]
-azet_values_report_passw = os.environ["azet_values_report_passw"]
+values_report_login = os.environ["values_report_login"]
+values_report_passw = os.environ["values_report_passw"]
 
 
 # ---------------- MYSQL ----------------
@@ -134,8 +134,8 @@ def get_values_emails():
     while not success:
         try:
             time.sleep(0.05)
-            imap = imaplib.IMAP4_SSL(email_server)
-            imap.login(azet_values_report_login, azet_values_report_passw)
+            imap = imaplib.IMAP4_SSL("imap.gmail.com")
+            imap.login(values_report_login, values_report_passw)
             imap.select("Inbox")
 
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
