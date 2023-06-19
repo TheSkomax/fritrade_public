@@ -134,10 +134,11 @@ def get_values_emails():
     while not success:
         try:
             time.sleep(0.05)
-            imap = imaplib.IMAP4_SSL("imap.gmail.com")
+            # imap = imaplib.IMAP4_SSL("imap.gmail.com")
+            imap = imaplib.IMAP4_SSL(email_server)
             imap.login(values_report_login, values_report_passw)
             imap.select("Inbox")
-
+            print(imap.state)
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
             for msgnum in msgnums[0].split():
                 time.sleep(0.05)
@@ -422,7 +423,9 @@ def main():
             log_sf_trader.info("Starting run")
             log_sf_trader.info("Getting values")
             # get_values_emails()
-            get_values_emails_gmail()
+
+            subprocess.run(["python3", "./azet_test.py"], shell=False)
+
             log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting buy alerts")
@@ -435,6 +438,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+# subprocess.run(["python3", "./azet_test.py"], shell=False)
+# get_values_emails()
+# get_alerts_strong_buy()
 
 # TODO bud to urobit tak, ze to zisti strong signal a pocka 2-3 sviecky a cekne, ci tam ten signal stale je
 #  to asi bude dost tazke, mozno zbytocne zlozite
