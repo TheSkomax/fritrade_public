@@ -13,7 +13,7 @@ from datetime import datetime
 import subprocess
 import logging
 from twilio.rest import Client
-import gmail_imap
+
 
 dotenv.load_dotenv(".env")
 table_name_part = ""
@@ -83,62 +83,17 @@ def date_now():
     return date_actual
 
 
-def get_values_emails_gmail():
-    success = False
-    log_sf_trader.info("get_values_emails: Getting GMAIL imap")
-
-    while not success:
-        try:
-            values = gmail_imap.start()
-            msgnum = values["msgnum"]
-            sender = values["sender"]
-            subject = values["subject"]
-            date_dmy = values["date_dmy"]
-            time_received = values["time_received"]
-            atrup_value = values["atrup_value"]
-            atrlow_value = values["atrlow_value"]
-            price_close = values["price_close"]
-
-            insert_query = f"""insert into fri_trade.EURCHF_1h_values_sf_strong (timeReceived, dateReceived, message_number,
-                                message_sender, message_subject, price_close, value_atr_up, value_atr_down, processed) VALUES('{time_received}',
-                                '{date_dmy}', {msgnum}, '{sender}', '{subject}', {price_close}, {atrup_value},
-                                {atrlow_value}, {False})"""
-            select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
-                               message_number desc limit 1"""
-            try:
-                fri_trade_cursor.execute(select_query)
-                last_msgnum = int(fri_trade_cursor.fetchone()[0])
-                if int(msgnum) > last_msgnum:
-                    fri_trade_cursor.execute(insert_query)
-                    mes = "New value added!"
-                    print(f"{date_now()} {time_now_hms()} {mes}")
-                    log_sf_trader.warning(mes)
-                # else:
-                #     print(f"{msgnum} Value already in database")
-
-            except TypeError:
-                print(f"{msgnum} Database empty - first email!")
-                fri_trade_cursor.execute(insert_query)
-
-            success = True
-
-        except Exception as error:
-            log_sf_trader.error(f"get_values_emails_gmail: {type(error).__name__}: {error}")
-            time.sleep(30)
-
-
 def get_values_emails():
     success = False
     log_sf_trader.info("get_values_emails: Getting imap")
 
     while not success:
         try:
-            time.sleep(0.05)
-            # imap = imaplib.IMAP4_SSL("imap.gmail.com")
-            imap = imaplib.IMAP4_SSL(email_server)
+            time.sleep(0.5)
+            imap = imaplib.IMAP4_SSL("imap.gmail.com")
             imap.login(values_report_login, values_report_passw)
             imap.select("Inbox")
-            print(imap.state)
+
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
             for msgnum in msgnums[0].split():
                 time.sleep(0.05)
@@ -152,7 +107,7 @@ def get_values_emails():
                         message = email.message_from_bytes(data[0][1])
                         message_ok = True
                     except Exception as error:
-                        log_sf_trader.error(f"get_values_emails 1: {type(error).__name__}, {error}")
+                        log_sf_trader.critical(f"Gmail values 1: {type(error).__name__}, {error}")
                         time.sleep(10)
 
                 sender = message.get('From')
@@ -209,7 +164,7 @@ def get_values_emails():
             imap.logout()
 
         except Exception as error:
-            log_sf_trader.error(f"get_values_emails 2: {type(error).__name__}: {error}")
+            log_sf_trader.critical(f"Gmail values 2: {type(error).__name__}: {error}")
             # imap.close()
             # imap.logout()
             time.sleep(30)
@@ -422,10 +377,7 @@ def main():
         if True in conditions:
             log_sf_trader.info("Starting run")
             log_sf_trader.info("Getting values")
-            # get_values_emails()
-
-            subprocess.run(["python3", "./azet_test.py"], shell=False)
-
+            get_values_emails()
             log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting buy alerts")
@@ -438,9 +390,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-# subprocess.run(["python3", "./azet_test.py"], shell=False)
-# get_values_emails()
-# get_alerts_strong_buy()
 
 # TODO bud to urobit tak, ze to zisti strong signal a pocka 2-3 sviecky a cekne, ci tam ten signal stale je
 #  to asi bude dost tazke, mozno zbytocne zlozite
@@ -453,4 +402,4 @@ if __name__ == "__main__":
 #     skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
 
 # TODO ak to bude stale davat broken pipe tak skusit urobit samostatne .py skripty pre get_values_emails a to druhe
-#   a nech to spusta cez subprocess???
+#     a nech to spusta cez subprocess???
