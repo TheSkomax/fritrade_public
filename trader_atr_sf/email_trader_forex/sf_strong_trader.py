@@ -465,9 +465,9 @@ def main():
         time.sleep(1)
 
 
-# if __name__ == "__main__":
-#     main()
-get_values_emails()
+if __name__ == "__main__":
+    main()
+
 # TODO druha moznost je kontrolovat aj klasicke BUY/SELL signaly z toho indikatora a otvorit obchod az ked budu dva
 #  sell - strong sell alebo buy - buy a tak.
 #     A bude to posielat sms upozornenia typu "EURCHF 1h buy" potom "EURCHF 1h strong buy" a potom manualne ceknem ci
