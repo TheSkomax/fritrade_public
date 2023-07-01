@@ -142,16 +142,17 @@ def get_message_data(message, email_type):
                 "symbol": symbol, "timeframe": timeframe, "operation": operation}
 
 
-def get_values_emails():
+def get_values_emails(imap_gmail):
     success = False
     log_sf_trader.info("get_values_emails: Getting imap")
+    imap = imap_gmail
 
     while not success:
         try:
             time.sleep(0.3)
-            imap = imaplib.IMAP4_SSL("imap.gmail.com")
-            imap.login(values_report_login, values_report_passw)
-            imap.select("Inbox")
+            # imap = imaplib.IMAP4_SSL("imap.gmail.com")
+            # imap.login(values_report_login, values_report_passw)
+            # imap.select("Inbox")
 
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
             select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
@@ -246,7 +247,7 @@ def get_alerts_strong_buy():
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
     select_query = """select message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong order by
-                               message_number desc limit 1"""
+                       message_number desc limit 1"""
     fri_trade_cursor.execute(select_query)
     last_msgnum = int(fri_trade_cursor.fetchone()[0])
 
@@ -331,7 +332,7 @@ def get_alerts_strong_buy():
 
 def get_imap(login, passw):
     logged_in = False
-    log_sf_trader.info("Getting imap")
+    log_sf_trader.info("get_imap - Getting imap")
     while not logged_in:
         try:
             time.sleep(0.01)
@@ -365,7 +366,7 @@ def get_sl_tp(operation, symbol, timeframe):
                   "message_number": value_sel_query_result[5]}
 
     alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong
-                        order by id desc limit 1"""
+                       order by id desc limit 1"""
     fri_trade_cursor.execute(alert_query)
     alert_sel_query_result = fri_trade_cursor.fetchone()
     alert_data = {"time_received": alert_sel_query_result[0],
@@ -433,40 +434,45 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def send_sms(text_message):
-    client = Client(twilio_credentials["twilio_sid"], twilio_credentials["twilio_token"])
-    message = client.messages.create(
-        body=text_message,
-        from_=twilio_credentials["twilio_number"],
-        to=twilio_credentials["my_phone_number"]
-    )
-    log_sf_trader.warning(f"SMS has been sent! {text_message}")
+    client = Client(twilio_credentials["twilio_sid"],
+                    twilio_credentials["twilio_token"])
+    client.messages.create(body= text_message,
+                           from_=twilio_credentials["twilio_number"],
+                           to=   twilio_credentials["my_phone_number"])
+    log_sf_trader.warning(f"SMS has been sent: {text_message}")
 
 
 def main():
+    times = ("00:20", "0:20", "04:00", "4:00")
+
     print(f"\n--- SmartForex Strong signal email trader ---\n{date_now()} {time_now_hms()} Running...")
-    print("Check times are set to (min:sec) MAIN 00:20, BACKUP 04:00")
-    log_sf_trader.info("STARTED ---------------------------------------------------------------------")
+    print(f"Check times are set to (min:sec) MAIN {times[0]}, BACKUP {times[2]}")
+    log_sf_trader.info(f"STARTED --- {times[0]} {times[2]} -------------------------------------------------")
+
+    imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+    imap_gmail.login(values_report_login, values_report_passw)
+    imap_gmail.select("Inbox")
+
     while True:
         check_time = time_now_ms()
-        conditions = (check_time == "00:20", check_time == "0:20",
-                      check_time == "04:00", check_time == "4:00",)
 
-        if True in conditions:
-            log_sf_trader.info("Starting run")
+        if check_time in times:
+            log_sf_trader.info("=== RUN STARTED")
             log_sf_trader.info("Getting values")
-            get_values_emails()
+            get_values_emails(imap_gmail)
             log_sf_trader.info("Done")
 
             log_sf_trader.info("Getting buy alerts")
             get_alerts_strong_buy()
             log_sf_trader.info("Done")
-            log_sf_trader.info("Run over")
+            log_sf_trader.info("=== RUN OVER")
 
         time.sleep(1)
 
 
 if __name__ == "__main__":
     main()
+
 
 # TODO druha moznost je kontrolovat aj klasicke BUY/SELL signaly z toho indikatora a otvorit obchod az ked budu dva
 #  sell - strong sell alebo buy - buy a tak.
@@ -475,7 +481,11 @@ if __name__ == "__main__":
 #     alebo to nejak inak zautomatizujem - twilio by aj dostavalo sms odomna? Asi nie, to by bolo zlozite, tam skusit
 #     skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
 
-# TODO VIX 1D: Chandelier exit -> takeprofit 1 az 1.15pip, stoploss atrb
-#      EURCHF 1h: 2xSF indikator -> nastaveny jeden na 2h a druhy na 4h, riadit sa podla oboch SF indikatorov, skombinovat ich a pouzivat aj buy/sell aj strong signaly
-#                   10% takeprofit NIE!!! na 1h timeframe je to 32 pipov a to je moc!
-#      EURCHF 1D: SF 1W -> pozerat len strong signaly
+# TODO ■■■VIX 1D: Chandelier exit -> takeprofit 1 az 1.15pip, stoploss atrb
+#      ■■■EURCHF 1h: 2xSF indikator -> nastaveny jeden na 2h a druhy na 4h, riadit sa podla oboch SF indikatorov,
+#               skombinovat ich a pouzivat aj buy/sell aj strong signaly
+#               10% takeprofit NIE!!! na 1h timeframe je to 32 pipov a to je moc!
+#      ■■■EURCHF 1D: SF 1W -> pozerat len strong signaly
+
+# TODO ■■■ ked bol critical na gmail imape tak bol len 1x a potom to pri dalsom rune zas slo normalne, tak mozno
+#             ako je to zadefinovane na fest v main tak to je dobre tak
