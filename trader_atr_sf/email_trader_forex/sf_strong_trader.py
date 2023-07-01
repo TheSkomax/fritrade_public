@@ -142,7 +142,7 @@ def get_message_data(message, email_type):
                 "symbol": symbol, "timeframe": timeframe, "operation": operation}
 
 
-def get_values_emails(imap_gmail):
+def get_values(imap_gmail):
     success = False
     log_sf_trader.info("get_values_emails: Getting imap")
     imap = imap_gmail
@@ -232,8 +232,8 @@ def get_values_emails(imap_gmail):
 
                 success = True
 
-            imap.close()
-            imap.logout()
+            # imap.close()
+            # imap.logout()
 
         except Exception as error:
             log_sf_trader.critical(f"Gmail values err2: {type(error).__name__}: {error}")
@@ -242,10 +242,11 @@ def get_values_emails(imap_gmail):
             time.sleep(30)
 
 
-def get_alerts_strong_buy():
+def get_alerts():
     imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
+    # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert:")')
     select_query = """select message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong order by
                        message_number desc limit 1"""
     fri_trade_cursor.execute(select_query)
@@ -302,7 +303,7 @@ def get_alerts_strong_buy():
                     message = email.message_from_bytes(data[0][1])
                     message_ok = True
                 except Exception as error:
-                    log_sf_trader.error(f"get_alerts_strong_buy: {type(error).__name__}, {error}")
+                    log_sf_trader.error(f"get_alerts: {type(error).__name__}, {error}")
                     time.sleep(10)
 
             message_data = get_message_data(message, "alert")
@@ -315,9 +316,9 @@ def get_alerts_strong_buy():
             operation = message_data["operation"]
 
             insert_query = f"""insert into fri_trade.EURCHF_1h_alert_emails_sf_strong (timeReceived, dateReceived,
-                                                message_number, message_sender, message_subject, symbol, timeframe, operation, processed)
-                                                VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject}', '{symbol}',
-                                                '{timeframe}', '{operation}', {False})"""
+                                message_number, message_sender, message_subject, symbol, timeframe, operation, processed)
+                                VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject}', '{symbol}',
+                                '{timeframe}', '{operation}', {False})"""
 
             fri_trade_cursor.execute(insert_query)
             mes = f"New {symbol} {timeframe} STRONG BUY email alert added!"
@@ -353,8 +354,8 @@ def get_sl_tp(operation, symbol, timeframe):
         except ValueError:
             return int(time_received[:1])
 
-    value_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived, message_number from fri_trade.
-                       EURCHF_1h_values_sf_strong order by id desc limit 1"""
+    value_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived, message_number
+                       from fri_trade.EURCHF_1h_values_sf_strong order by id desc limit 1"""
     fri_trade_cursor.execute(value_query)
     value_sel_query_result = fri_trade_cursor.fetchone()
     value_data = {"time_received": value_sel_query_result[0],
@@ -436,9 +437,9 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 def send_sms(text_message):
     client = Client(twilio_credentials["twilio_sid"],
                     twilio_credentials["twilio_token"])
-    client.messages.create(body= text_message,
+    client.messages.create(body=text_message,
                            from_=twilio_credentials["twilio_number"],
-                           to=   twilio_credentials["my_phone_number"])
+                           to=twilio_credentials["my_phone_number"])
     log_sf_trader.warning(f"SMS has been sent: {text_message}")
 
 
@@ -459,11 +460,11 @@ def main():
         if check_time in times:
             log_sf_trader.info("=== RUN STARTED")
             log_sf_trader.info("Getting values")
-            get_values_emails(imap_gmail)
+            get_values(imap_gmail)
             log_sf_trader.info("Done")
 
-            log_sf_trader.info("Getting buy alerts")
-            get_alerts_strong_buy()
+            log_sf_trader.info("Getting alerts")
+            get_alerts()
             log_sf_trader.info("Done")
             log_sf_trader.info("=== RUN OVER")
 
