@@ -145,14 +145,14 @@ def get_message_data(message, email_type):
 def get_values(imap_gmail):
     success = False
     log_sf_trader.info("get_values_emails: Getting imap")
-    imap = imap_gmail
+    # imap = imap_gmail
 
     while not success:
         try:
             time.sleep(0.3)
-            # imap = imaplib.IMAP4_SSL("imap.gmail.com")
-            # imap.login(values_report_login, values_report_passw)
-            # imap.select("Inbox")
+            imap = imaplib.IMAP4_SSL("imap.gmail.com")
+            imap.login(values_report_login, values_report_passw)
+            imap.select("Inbox")
 
             _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h Values report")')
             select_query = """select message_number from fri_trade.EURCHF_1h_values_sf_strong order by
@@ -450,9 +450,10 @@ def main():
     print(f"Check times are set to (min:sec) MAIN {times[0]}, BACKUP {times[2]}")
     log_sf_trader.info(f"STARTED --- {times[0]} {times[2]} -------------------------------------------------")
 
-    imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
-    imap_gmail.login(values_report_login, values_report_passw)
-    imap_gmail.select("Inbox")
+    imap_gmail = ""
+    # imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+    # imap_gmail.login(values_report_login, values_report_passw)
+    # imap_gmail.select("Inbox")
 
     while True:
         check_time = time_now_ms()
@@ -489,4 +490,5 @@ if __name__ == "__main__":
 #      ■■■EURCHF 1D: SF 1W -> pozerat len strong signaly
 
 # TODO ■■■ ked bol critical na gmail imape tak bol len 1x a potom to pri dalsom rune zas slo normalne, tak mozno
-#             ako je to zadefinovane na fest v main tak to je dobre tak
+#             ako je to zadefinovane na fest v main tak to je dobre tak EDIT: tak vtedy to bezalo po starom, ze
+#               ten imap sa definoval az v get_values!!!!!!!
