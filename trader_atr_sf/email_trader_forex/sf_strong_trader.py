@@ -243,10 +243,12 @@ def get_values(imap_gmail):
 
 
 def get_alerts():
+    # Alert symbol timeframe indicator op
+    # Alert EURCHF 1h SQZ-KC60 buy
     imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
-    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONG BUY")')
-    # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert:")')
+    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONGBUY")')
+    # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert")')
     select_query = """select message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong order by
                        message_number desc limit 1"""
     fri_trade_cursor.execute(select_query)
@@ -266,7 +268,7 @@ def get_alerts():
                         message = email.message_from_bytes(data[0][1])
                         message_ok = True
                     except Exception as error:
-                        log_sf_trader.error(f"get_alerts_strong_buy: {type(error).__name__}, {error}")
+                        log_sf_trader.error(f"get_alerts: {type(error).__name__}, {error}")
                         time.sleep(10)
 
                 message_data = get_message_data(message, "alert")
