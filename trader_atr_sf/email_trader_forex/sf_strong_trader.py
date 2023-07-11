@@ -14,11 +14,10 @@ import subprocess
 import logging
 from twilio.rest import Client
 
-
 dotenv.load_dotenv(".env")
 table_name_part = ""
-active_charts = [{"chartname": "US500_1h",  "is_currency": False},
-                 {"chartname": "VIX_1D",    "is_currency": False},
+active_charts = [{"chartname": "US500_1h", "is_currency": False},
+                 {"chartname": "VIX_1D", "is_currency": False},
                  {"chartname": "EURCHF_1h", "is_currency": True},
                  {"chartname": "EURCHF_1D", "is_currency": True}]
 twilio_credentials = {
@@ -36,7 +35,6 @@ azet_buy_alerts_passw = os.environ["azet_buy_alerts_passw"]
 values_report_login = os.environ["values_report_login"]
 values_report_passw = os.environ["values_report_passw"]
 
-
 # ---------------- MYSQL ----------------
 mysql_user = os.environ["mysql_user"]
 mysql_passw = os.environ["mysql_passw"]
@@ -46,7 +44,6 @@ db_connection = mysql.connector.connect(host="localhost",
                                         database="fri_trade",
                                         autocommit=True)
 fri_trade_cursor = db_connection.cursor(buffered=True)
-
 
 # ---------------- LOGGING ----------------
 log_sf_trader = logging.getLogger("sf_logger")
@@ -112,7 +109,7 @@ def get_message_data(message, email_type):
         atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)
         price_close = round(float(message[message.index('2;">Price') + 1]), 5)
 
-        return {"time_received": time_received, "date_dmy": date_dmy, "sender":sender, "subject":subject,
+        return {"time_received": time_received, "date_dmy": date_dmy, "sender": sender, "subject": subject,
                 "price_close": price_close, "atrup_value": atrup_value, "atrlow_value": atrlow_value}
 
     elif email_type == "alert":
@@ -243,6 +240,7 @@ def get_values(imap_gmail):
 
 
 def get_alerts():
+    alerts = []
     # Alert symbol timeframe indicator op
     # Alert EURCHF 1h SQZ-KC60 buy
     imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
@@ -254,12 +252,55 @@ def get_alerts():
     fri_trade_cursor.execute(select_query)
     last_msgnum = int(fri_trade_cursor.fetchone()[0])
 
-    for msgnum in msgnums[0].split():
-        time.sleep(0.3)
-        msgnum = msgnum.decode("utf-8")
+    if msgnums[0] is not None:
+        for msgnum in msgnums[0].split():
+            time.sleep(0.3)
+            msgnum = msgnum.decode("utf-8")
 
-        try:
-            if int(msgnum) > last_msgnum:
+            try:
+                if int(msgnum) > last_msgnum:
+                    message_ok = False
+                    while not message_ok:
+                        try:
+                            time.sleep(0.63)
+                            _, data = imap.fetch(msgnum, "(RFC822)")
+                            message = email.message_from_bytes(data[0][1])
+                            message_ok = True
+                        except Exception as error:
+                            log_sf_trader.error(f"get_alerts: {type(error).__name__}, {error}")
+                            time.sleep(10)
+
+                    message_data = get_message_data(message, "alert")
+                    time_received = message_data["time_received"]
+                    date_dmy = message_data["date_dmy"]
+                    sender = message_data["sender"]
+                    subject = message_data["subject"]
+                    symbol = message_data["symbol"]
+                    timeframe = message_data["timeframe"]
+                    operation = message_data["operation"]
+
+                    temp_list = subject.split(" ")
+                    temp_list.pop(0)
+                    temp_list.pop(0)
+                    subject_clean = " ".join(temp_list)
+
+                    insert_query = f"""insert into fri_trade.EURCHF_1h_alert_emails_sf_strong (timeReceived, dateReceived,
+                                        message_number, message_sender, message_subject, symbol, timeframe, operation, processed)
+                                        VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject_clean}',
+                                        '{symbol}', '{timeframe}', '{operation}', {False})"""
+
+                    fri_trade_cursor.execute(insert_query)
+                    mes = f"New {symbol} {timeframe} STRONG BUY email alert added!"
+                    print(f"{date_now()} {time_now_hms()} {mes}")
+                    log_sf_trader.warning(mes)
+
+                    get_sl_tp(operation, symbol, timeframe)
+                # else:
+                #     print(f"{msgnum} new msgnum not higher than last_msgnum")
+
+            except TypeError:  # ak je prazdna databaza
+                print(f"{msgnum} Database empty - first email alert!")
+
                 message_ok = False
                 while not message_ok:
                     try:
@@ -280,10 +321,15 @@ def get_alerts():
                 timeframe = message_data["timeframe"]
                 operation = message_data["operation"]
 
+                temp_list = subject.split(" ")
+                temp_list.pop(0)
+                temp_list.pop(0)
+                subject_clean = " ".join(temp_list)
+
                 insert_query = f"""insert into fri_trade.EURCHF_1h_alert_emails_sf_strong (timeReceived, dateReceived,
                                     message_number, message_sender, message_subject, symbol, timeframe, operation, processed)
-                                    VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject}', '{symbol}',
-                                    '{timeframe}', '{operation}', {False})"""
+                                    VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject_clean}',
+                                    '{symbol}', '{timeframe}', '{operation}', {False})"""
 
                 fri_trade_cursor.execute(insert_query)
                 mes = f"New {symbol} {timeframe} STRONG BUY email alert added!"
@@ -291,43 +337,11 @@ def get_alerts():
                 log_sf_trader.warning(mes)
 
                 get_sl_tp(operation, symbol, timeframe)
-            # else:
-            #     print(f"{msgnum} new msgnum not higher than last_msgnum")
 
-        except TypeError:  # ak je prazdna databaza
-            print(f"{msgnum} Database empty - first email alert!")
-
-            message_ok = False
-            while not message_ok:
-                try:
-                    time.sleep(0.63)
-                    _, data = imap.fetch(msgnum, "(RFC822)")
-                    message = email.message_from_bytes(data[0][1])
-                    message_ok = True
-                except Exception as error:
-                    log_sf_trader.error(f"get_alerts: {type(error).__name__}, {error}")
-                    time.sleep(10)
-
-            message_data = get_message_data(message, "alert")
-            time_received = message_data["time_received"]
-            date_dmy = message_data["date_dmy"]
-            sender = message_data["sender"]
-            subject = message_data["subject"]
-            symbol = message_data["symbol"]
-            timeframe = message_data["timeframe"]
-            operation = message_data["operation"]
-
-            insert_query = f"""insert into fri_trade.EURCHF_1h_alert_emails_sf_strong (timeReceived, dateReceived,
-                                message_number, message_sender, message_subject, symbol, timeframe, operation, processed)
-                                VALUES('{time_received}', '{date_dmy}', {msgnum}, '{sender}', '{subject}', '{symbol}',
-                                '{timeframe}', '{operation}', {False})"""
-
-            fri_trade_cursor.execute(insert_query)
-            mes = f"New {symbol} {timeframe} STRONG BUY email alert added!"
-            print(f"{date_now()} {time_now_hms()} {mes}")
-            log_sf_trader.warning(mes)
-
-            get_sl_tp(operation, symbol, timeframe)
+    else:
+        mes = f"get_alerts - msgnums[0] is NONE!"
+        print(f"{date_now()} {time_now_hms()} {mes}")
+        log_sf_trader.error(mes)
 
     imap.close()
     imap.logout()
@@ -476,7 +490,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 # TODO druha moznost je kontrolovat aj klasicke BUY/SELL signaly z toho indikatora a otvorit obchod az ked budu dva
 #  sell - strong sell alebo buy - buy a tak.
