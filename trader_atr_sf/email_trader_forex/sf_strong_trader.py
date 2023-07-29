@@ -131,9 +131,13 @@ def get_message_data(message, email_type):
         time_received = ":".join(time_hms)
 
         subject_parts = subject.split(" ")
-        symbol = subject_parts[1]
-        timeframe = subject_parts[2]
+        symbol = subject_parts[2]
+        timeframe = subject_parts[3]
         operation = subject_parts[4].lower()
+        if "buy" in operation:
+            operation = "buy"
+        else:
+            operation = "sell"
 
         return {"time_received": time_received, "date_dmy": date_dmy, "sender": sender, "subject": subject,
                 "symbol": symbol, "timeframe": timeframe, "operation": operation}
@@ -245,7 +249,7 @@ def get_alerts():
     # Alert EURCHF 1h SQZ-KC60 buy
     imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
-    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: EURCHF 1h STRONGBUY")')
+    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert EURCHF 1h STRONGBUY")')
     # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert")')
     select_query = """select message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong order by
                        message_number desc limit 1"""
@@ -340,7 +344,7 @@ def get_alerts():
 
     else:
         mes = f"get_alerts - msgnums[0] is NONE!"
-        print(f"{date_now()} {time_now_hms()} {mes}")
+        # print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.error(mes)
 
     imap.close()
