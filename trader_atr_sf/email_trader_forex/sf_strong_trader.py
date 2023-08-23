@@ -331,7 +331,7 @@ def get_alerts(imap):
                     takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
                     if takeprofit_pips is not False:
                         alerts.append(
-                            f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                            f"{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
             except TypeError:  # ak je prazdna databaza
                 print(f"{msgnum} Database empty - first email alert!")
@@ -376,9 +376,10 @@ def get_alerts(imap):
                 takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
                 if takeprofit_pips is not False:
                     alerts.append(
-                        f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                        f"{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
         send_sms(alerts)
+    #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
 
     else:
         mes = f"get_alerts - msgnums[0] is NONE!"
@@ -500,6 +501,7 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def send_sms(text_message):
+    log_sf_trader.warning(f"Sending SMS: {text_message}")
     client = Client(twilio_credentials["twilio_sid"],
                     twilio_credentials["twilio_token"])
     client.messages.create(body= text_message,
