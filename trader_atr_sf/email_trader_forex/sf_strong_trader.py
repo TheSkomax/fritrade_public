@@ -265,12 +265,9 @@ def get_values(imap):
 
 
 def get_alerts(imap):
-    # TODO urobit queue sms alertov - vsetky do jednej a len jedna sa odosle
-    alerts = []
-
     # "Alert symbol timeframe indicator op"
     # "Alert EURCHF 1h        SQZ-KC60  buy"
-
+    alerts = []
     # imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
     # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert EURCHF 1h STRONGBUY")')
     _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert")')
@@ -331,7 +328,7 @@ def get_alerts(imap):
                     takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
                     if takeprofit_pips is not False:
                         alerts.append(
-                            f"{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                            f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
             except TypeError:  # ak je prazdna databaza
                 print(f"{msgnum} Database empty - first email alert!")
@@ -347,15 +344,15 @@ def get_alerts(imap):
                         log_sf_trader.error(f"get_alerts: {type(error).__name__}, {error}")
                         time.sleep(10)
 
-                message_data = get_message_data(message, "alert")
+                message_data =  get_message_data(message, "alert")
                 time_received = message_data["time_received"]
-                date_dmy = message_data["date_dmy"]
-                sender = message_data["sender"]
-                subject = message_data["subject"]
-                symbol = message_data["symbol"]
-                timeframe = message_data["timeframe"]
-                operation = message_data["operation"]
-                indicator = message_data["indicator"]
+                date_dmy =      message_data["date_dmy"]
+                sender =        message_data["sender"]
+                subject =       message_data["subject"]
+                symbol =        message_data["symbol"]
+                timeframe =     message_data["timeframe"]
+                operation =     message_data["operation"]
+                indicator =     message_data["indicator"]
 
                 # temp_list = subject.split(" ")
                 # temp_list.pop(0)
@@ -376,9 +373,9 @@ def get_alerts(imap):
                 takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
                 if takeprofit_pips is not False:
                     alerts.append(
-                        f"{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                        f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
-        send_sms(alerts)
+        send_sms(" ".join(alerts))
     #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
 
     else:
@@ -479,10 +476,9 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
 
     else:
         print("OLD value in database - see log for details!")
-        mes = f"""value hour_rec {value_data['hour_received']} -> alert hour_rec {alert_data['hour_received']} ->
-                   hour_now {hour_now()},
-                   value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
-                   date_now {date_now()}, alert {alert_data['message_number']}"""
+        mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {hour_now()},
+                   VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {date_now()},
+                   EMAIL ALERT number: {alert_data['message_number']}"""
         log_sf_trader.error(mes)
 
         return False, False
