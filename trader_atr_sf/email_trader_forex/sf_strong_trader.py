@@ -378,8 +378,8 @@ def get_alerts(imap):
                 #         f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
                 alerts.append(
                             f"\n{symbol} {timeframe} {indicator} {operation}")
-
-        send_sms(" ".join(alerts))
+        if len(alerts):
+            send_sms(" ".join(alerts))
     #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
 
     else:
