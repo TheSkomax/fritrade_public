@@ -109,9 +109,9 @@ def get_message_data(message, email_type):
         message = message.replace('\n', " ")
         message = message.split(" ")
 
-        price_close =  round(float(message[message.index('2;">Price') + 1]), 5)  # TODO - ceknut ako to bude zaokruhlovat symboly, co maju menej ako 5 desatinnych miest a ako dlhé ich TV bude posielat
-        atrup_value =  round(float(message[message.index("ATR-upper") + 1]), 5)       # TODO to iste
-        atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)  # TODO to iste
+        price_close =  round(float(message[message.index('2;">Price') + 1]), 5)
+        atrup_value =  round(float(message[message.index("ATR-upper") + 1]), 5)
+        atrlow_value = round(float(message[message.index("ATR-lower") + 1][:-4]), 5)
 
         return {"time_received": time_received, "date_dmy": date_dmy, "sender": sender, "subject": subject,
                 "price_close": price_close, "atrup_value": atrup_value, "atrlow_value": atrlow_value,
@@ -157,8 +157,7 @@ def get_values(imap):
             # imap.login(values_report_login, values_report_passw)
             # imap.select("Inbox")
 
-            _, msgnums = imap.search(None,
-                                     '(FROM "noreply@tradingview.com" SUBJECT "Alert: Values")')
+            _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Values")')
             select_query = """select message_number from fri_trade.email_trader_values order by
                                message_number desc limit 1"""
             fri_trade_cursor.execute(select_query)
@@ -207,7 +206,7 @@ def get_values(imap):
 
                             fri_trade_cursor.execute(insert_query)
 
-                            mes = f"{symbol} {timeframe} - new value added!"
+                            mes = f"{symbol} {timeframe} - VALUE added!"
                             print(f"{date_now()} {time_now_hms()} {mes}")
                             log_sf_trader.warning(mes)
 
@@ -236,7 +235,6 @@ def get_values(imap):
                         symbol = message_data["symbol"]
                         timeframe = message_data["timeframe"]
 
-                        print(timeframe, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                         insert_query = f"""insert into fri_trade.email_trader_values (timeReceived, dateReceived,
                                             message_number, message_sender, symbol, timeframe, price_close, value_atr_up,
                                             value_atr_down, processed, message_subject) VALUES ('{time_received}',
@@ -245,7 +243,7 @@ def get_values(imap):
 
                         fri_trade_cursor.execute(insert_query)
 
-                        mes = f"{symbol} {timeframe} - new value added!"
+                        mes = f"{symbol} {timeframe} - VALUE added!"
                         print(f"{date_now()} {time_now_hms()} {mes}")
                         log_sf_trader.warning(mes)
 
@@ -267,14 +265,15 @@ def get_values(imap):
 
 
 def get_alerts(imap):
+    # TODO urobit queue sms alertov - vsetky do jednej a len jedna sa odosle
     alerts = []
-    # Alert symbol timeframe indicator op
-    # Alert EURCHF 1h SQZ-KC60 buy
-    # imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
 
+    # "Alert symbol timeframe indicator op"
+    # "Alert EURCHF 1h        SQZ-KC60  buy"
+
+    # imap = get_imap(azet_buy_alerts_login, azet_buy_alerts_passw)
     # _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert EURCHF 1h STRONGBUY")')
-    _, msgnums = imap.search(None,
-                             '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert")')
+    _, msgnums = imap.search(None, '(FROM "noreply@tradingview.com" SUBJECT "Alert: Alert")')
     select_query = """select message_number from fri_trade.email_trader_alerts order by
                        message_number desc limit 1"""
     fri_trade_cursor.execute(select_query)
@@ -329,7 +328,8 @@ def get_alerts(imap):
                     print(f"{date_now()} {time_now_hms()} {mes}")
                     log_sf_trader.warning(mes)
 
-                    get_sl_tp(operation, symbol, timeframe)
+                    takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
+                    alerts.append(f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
             except TypeError:  # ak je prazdna databaza
                 print(f"{msgnum} Database empty - first email alert!")
@@ -371,7 +371,10 @@ def get_alerts(imap):
                 print(f"{date_now()} {time_now_hms()} {mes}")
                 log_sf_trader.warning(mes)
 
-                get_sl_tp(operation, symbol, timeframe)
+                takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
+                alerts.append(f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+
+        send_sms(alerts)
 
     else:
         mes = f"get_alerts - msgnums[0] is NONE!"
@@ -399,7 +402,7 @@ def get_imap(login, passw):  # OBSOLETE!
             time.sleep(3)
 
 
-def get_sl_tp(operation, symbol, timeframe):
+def get_sl_tp(operation, symbol, timeframe, indicator):
     def get_hour_from_time(time_received):
         try:
             return int(time_received[:2])
@@ -411,7 +414,7 @@ def get_sl_tp(operation, symbol, timeframe):
                        order by id desc limit 1"""
     fri_trade_cursor.execute(value_query)
     value_sel_query_result = fri_trade_cursor.fetchone()
-    print("value_sel_query_result", value_sel_query_result, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+
     value_data = {"time_received":   value_sel_query_result[0],
                   "hour_received":   get_hour_from_time(value_sel_query_result[0]),
                   "price_close":     value_sel_query_result[1],
@@ -450,24 +453,24 @@ def get_sl_tp(operation, symbol, timeframe):
             takeprofit_price = value_data['value_atrb_down']
             takeprofit_pips = value_data['price_close'] - takeprofit_price
 
-        mes = f"OPENING BUY TRADE {symbol} {timeframe}"
+        mes = f" !!! OPENING TRADE {symbol} {timeframe} {indicator} {operation}"
         print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.warning(mes)
 
-        mes = f"""value hour_rec {value_data['hour_received']} -> alert hour_rec {alert_data['hour_received']} ->
-                   hour_now {hour_now()},
-                   value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
-                   date_now {date_now()}, alert {alert_data['message_number']}"""
+        mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {hour_now()},
+                   VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {date_now()}
+                   EMAIL ALERT number: {alert_data['message_number']}"""
         log_sf_trader.warning(mes)
-
-        send_sms(f"{symbol} {timeframe} strong {operation}")
 
         manual_only = True
         if not manual_only:
             communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
         else:
-            print("\nCommunicator is OFF!!!!!\n")
+            print("\nCommunicator is OFF!!!\n")
             log_sf_trader.warning("Communicator is OFF!!! - only manual trades")
+
+        # send_sms(f"\n{symbol} {timeframe} {indicator} {operation}")
+        return takeprofit_pips, stoploss_pips
 
     else:
         print("OLD value in database - see log for details!")
@@ -476,6 +479,8 @@ def get_sl_tp(operation, symbol, timeframe):
                    value date rec {value_data['date_received']} -> alert date rec {alert_data['date_received']} ->
                    date_now {date_now()}, alert {alert_data['message_number']}"""
         log_sf_trader.error(mes)
+
+        return "N/A", "N/A"
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
@@ -500,6 +505,7 @@ def send_sms(text_message):
 
 
 def main():
+    # TODO prerobit porovnavanie casu prijatia email alertu a akt. casu kvoli tomu, ze META chodi o pol, nie o celej hodine!!!
     times = ("00:20", "0:20", "04:00", "4:00")
 
     print(f"\n--- SmartForex Strong signal email trader ---"
@@ -529,6 +535,7 @@ def main():
 
             imap_gmail.close()
             imap_gmail.logout()
+            print("********************************************\n")
 
         time.sleep(1)
 
@@ -536,19 +543,9 @@ def main():
 if __name__ == "__main__":
     main()
 
-# TODO druha moznost je kontrolovat aj klasicke BUY/SELL signaly z toho indikatora a otvorit obchod az ked budu dva
-#  sell - strong sell alebo buy - buy a tak.
-#     A bude to posielat sms upozornenia typu "EURCHF 1h buy" potom "EURCHF 1h strong buy" a potom manualne ceknem ci
-#     je vhodne otvorit poziciu a manualne ju otvorim alebo prikazem FRIDAY, ktora si vezme SL/TP udaje a otvori,
-#     alebo to nejak inak zautomatizujem - twilio by aj dostavalo sms odomna? Asi nie, to by bolo zlozite, tam skusit
-#     skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
+# TODO ■■■EURCHF 1h: 10% takeprofit NIE!!! na 1h timeframe je to 32 pipov a to je moc!!!!!!!!
 
-# TODO ■■■VIX 1D: Chandelier exit -> takeprofit 1 az 1.15pip, stoploss atrb
-#      ■■■EURCHF 1h: 2xSF indikator -> nastaveny jeden na 2h a druhy na 4h, riadit sa podla oboch SF indikatorov,
-#               skombinovat ich a pouzivat aj buy/sell aj strong signaly
-#               10% takeprofit NIE!!! na 1h timeframe je to 32 pipov a to je moc!
-#      ■■■EURCHF 1D: SF 1W -> pozerat len strong signaly
-
-# TODO ■■■ ked bol critical na gmail imape tak bol len 1x a potom to pri dalsom rune zas slo normalne, tak mozno
-#             ako je to zadefinovane na fest v main tak to je dobre tak EDIT: tak vtedy to bezalo po starom, ze
-#               ten imap sa definoval az v get_values!!!!!!!
+# TODO otvorit obchod az ked budu dva sell - strong sell alebo buy - buy a tak.
+#       prikazem FRIDAY, ktora si vezme SL/TP udaje a otvori,
+#       alebo to nejak inak zautomatizujem - twilio by aj dostavalo sms odomna? Asi nie, to by bolo zlozite, tam skusit
+#       skor nejaku inu appku na spravy na to, ak este nepouzijem FRIDAY
