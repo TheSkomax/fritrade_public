@@ -329,7 +329,9 @@ def get_alerts(imap):
                     log_sf_trader.warning(mes)
 
                     takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
-                    alerts.append(f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                    if takeprofit_pips is not False:
+                        alerts.append(
+                            f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
             except TypeError:  # ak je prazdna databaza
                 print(f"{msgnum} Database empty - first email alert!")
@@ -372,7 +374,9 @@ def get_alerts(imap):
                 log_sf_trader.warning(mes)
 
                 takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
-                alerts.append(f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                if takeprofit_pips is not False:
+                    alerts.append(
+                        f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
 
         send_sms(alerts)
 
@@ -480,7 +484,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                    date_now {date_now()}, alert {alert_data['message_number']}"""
         log_sf_trader.error(mes)
 
-        return "N/A", "N/A"
+        return False, False
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
