@@ -516,7 +516,7 @@ def main():
     print(f"\n--- SmartForex Strong signal email trader ---"
           f"\nCheck times are set to (min:sec) MAIN {times[0]}, BACKUP {times[2]}"
           f"\n{date_now()} {time_now_hms()} Running...")
-    log_sf_trader.info(f"STARTED --- {times[0]} {times[2]} -------------------------------------------------")
+    log_sf_trader.info(f"STARTED --- {times} -------------------------------------------------")
 
     while True:
         check_time = time_now_ms()
