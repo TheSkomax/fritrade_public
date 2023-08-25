@@ -511,8 +511,7 @@ def send_sms(text_message):
 
 
 def main():
-    # TODO prerobit porovnavanie casu prijatia email alertu a akt. casu kvoli tomu, ze META chodi o pol, nie o celej hodine!!!
-    times = ("00:20", "0:20", "04:00", "4:00")
+    times = ("01:00", "31:00")
 
     print(f"\n--- SmartForex Strong signal email trader ---"
           f"\nCheck times are set to (min:sec) MAIN {times[0]}, BACKUP {times[2]}"
@@ -521,27 +520,29 @@ def main():
 
     while True:
         check_time = time_now_ms()
+        try:
+            if check_time in times:
+                log_sf_trader.info("=== RUN STARTED")
+                log_sf_trader.info("Getting GMAIL imap")
 
-        if check_time in times:
-            log_sf_trader.info("=== RUN STARTED")
-            log_sf_trader.info("Getting GMAIL imap")
+                imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+                imap_gmail.login(values_report_login, values_report_passw)
+                imap_gmail.select("Inbox")
 
-            imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
-            imap_gmail.login(values_report_login, values_report_passw)
-            imap_gmail.select("Inbox")
+                log_sf_trader.info("Getting values...")
+                get_values(imap_gmail)
+                log_sf_trader.info("Done")
 
-            log_sf_trader.info("Getting values...")
-            get_values(imap_gmail)
-            log_sf_trader.info("Done")
+                log_sf_trader.info("Getting alerts...")
+                get_alerts(imap_gmail)
+                log_sf_trader.info("Done")
+                log_sf_trader.info("=== RUN OVER")
 
-            log_sf_trader.info("Getting alerts...")
-            get_alerts(imap_gmail)
-            log_sf_trader.info("Done")
-            log_sf_trader.info("=== RUN OVER")
-
-            imap_gmail.close()
-            imap_gmail.logout()
-            print("********************************************\n")
+                imap_gmail.close()
+                imap_gmail.logout()
+                print("********************************************\n")
+        except ConnectionResetError:
+            log_sf_trader.critical("ConnectionResetError")
 
         time.sleep(1)
 
