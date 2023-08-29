@@ -118,8 +118,8 @@ def get_message_data(message, email_type):
                 "symbol": symbol, "timeframe": timeframe}
 
     elif email_type == "alert":
-        sender = message.get('From')
-        subject = message.get('subject')
+        sender =   message.get('From')
+        subject =  message.get('subject')
         date_raw = message.get('date')
         timelist = date_raw.split(" ")
         date_dmy = f"{timelist[1]}.{time.strptime(timelist[2], '%b').tm_mon}.{timelist[3]}"
@@ -372,12 +372,16 @@ def get_alerts(imap):
                 print(f"{date_now()} {time_now_hms()} {mes}")
                 log_sf_trader.warning(mes)
 
-                # takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
-                # if takeprofit_pips is not False:
-                #     alerts.append(
-                #         f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
-                alerts.append(
-                            f"\n{symbol} {timeframe} {indicator} {operation}")
+                takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
+                if takeprofit_pips is not False:
+                    if takeprofit_pips == stoploss_pips:
+                        alerts.append(
+                            f"\n{symbol} {timeframe} - {indicator} {operation} TP/SL {takeprofit_pips} ")
+                    else:
+                        alerts.append(
+                            f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                # alerts.append(f"\n{symbol} {timeframe} - {indicator} {operation}")
+
         if len(alerts):
             send_sms(" ".join(alerts))
     #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
@@ -428,6 +432,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                   "value_atrb_down": value_sel_query_result[3],
                   "date_received":   value_sel_query_result[4],
                   "message_number":  value_sel_query_result[5]}
+    # print(value_data)
 
     # alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong
     #                    order by id desc limit 1"""
@@ -439,27 +444,29 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                   "hour_received":  get_hour_from_time(alert_sel_query_result[0]),
                   "date_received":  alert_sel_query_result[1],
                   "message_number": alert_sel_query_result[2]}
+    # print(alert_data)
 
     time_date_condition = (value_data['hour_received'] == alert_data['hour_received'],
                            alert_data['hour_received'] == hour_now(),
                            value_data['date_received'] == alert_data['date_received'],
                            alert_data['date_received'] == date_now())
+    # print(time_date_condition)
 
     if False not in time_date_condition:
-        if operation == "buy":
-            stoploss_pips = value_data['price_close'] - value_data['value_atrb_down']
+        if "buy" in operation:
+            stoploss_pips = round(value_data['price_close'] - value_data['value_atrb_down'], 5)
             # stoploss_price = round(value_data['price_close'] - stoploss_pips, 5)
 
-            takeprofit_price = value_data['value_atrb_up']
-            takeprofit_pips = takeprofit_price - value_data['price_close']
+            takeprofit_price = round(value_data['value_atrb_up'], 5)
+            takeprofit_pips =  round(takeprofit_price - value_data['price_close'], 5)
         else:  # elif operation == "sell":
-            stoploss_pips = value_data['value_atrb_up'] - value_data['price_close']
+            stoploss_pips = round(value_data['value_atrb_up'] - value_data['price_close'], 5)
             # stoploss_price = round(value_data['price_close'] + stoploss_pips, 5)
 
-            takeprofit_price = value_data['value_atrb_down']
-            takeprofit_pips = value_data['price_close'] - takeprofit_price
+            takeprofit_price = round(value_data['value_atrb_down'], 5)
+            takeprofit_pips =  round(value_data['price_close'] - takeprofit_price, 5)
 
-        mes = f" !!! OPENING TRADE {symbol} {timeframe} {indicator} {operation}"
+        mes = f" !!! OPENING TRADE:   {symbol} {timeframe} - {indicator} {operation}"
         print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.warning(mes)
 
@@ -471,11 +478,15 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
         manual_only = True
         if not manual_only:
             communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
+
         else:
             print("\nCommunicator is OFF!!!\n")
             log_sf_trader.warning("Communicator is OFF!!! - only manual trades")
 
         # send_sms(f"\n{symbol} {timeframe} {indicator} {operation}")
+
+        # print(f"{symbol} {timeframe} - {indicator} {operation}")
+        # print(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
         return takeprofit_pips, stoploss_pips
 
     else:
@@ -540,7 +551,7 @@ def main():
 
                 imap_gmail.close()
                 imap_gmail.logout()
-                print("********************************************\n")
+
         except ConnectionResetError:
             log_sf_trader.critical("ConnectionResetError")
 
@@ -549,6 +560,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # a,b = get_sl_tp(operation="buy", symbol="EURCHF", timeframe="1h", indicator="SF2h")
+    # print(a,b)
 
 # TODO ■■■EURCHF 1h: 10% takeprofit NIE!!! na 1h timeframe je to 32 pipov a to je moc!!!!!!!!
 
