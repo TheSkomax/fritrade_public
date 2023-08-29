@@ -325,12 +325,15 @@ def get_alerts(imap):
                     print(f"{date_now()} {time_now_hms()} {mes}")
                     log_sf_trader.warning(mes)
 
-                    # takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
-                    # if takeprofit_pips is not False:
-                    #     alerts.append(
-                    #         f"\n{symbol} {timeframe} {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
-                    alerts.append(
-                        f"\n{symbol} {timeframe} {indicator} {operation}")
+                    takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
+                    if takeprofit_pips is not False:
+                        if takeprofit_pips == stoploss_pips:
+                            alerts.append(
+                                f"\n{symbol} {timeframe} - {indicator} {operation} TP/SL {takeprofit_pips} ")
+                        else:
+                            alerts.append(
+                                f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                    # alerts.append(f"\n{symbol} {timeframe} - {indicator} {operation}")
 
             except TypeError:  # ak je prazdna databaza
                 print(f"{msgnum} Database empty - first email alert!")
@@ -382,7 +385,7 @@ def get_alerts(imap):
                             f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
                 # alerts.append(f"\n{symbol} {timeframe} - {indicator} {operation}")
 
-        if len(alerts):
+        if len(alerts) > 0:
             send_sms(" ".join(alerts))
     #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
 
