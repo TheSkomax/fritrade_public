@@ -329,10 +329,10 @@ def get_alerts(imap):
                     if takeprofit_pips is not False:
                         if takeprofit_pips == stoploss_pips:
                             alerts.append(
-                                f"\n{symbol} {timeframe} - {indicator} {operation} TP/SL {takeprofit_pips} ")
+                                f"\n{symbol} {timeframe} - {indicator} {operation} - TP/SL {takeprofit_pips} ")
                         else:
                             alerts.append(
-                                f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                                f"\n{symbol} {timeframe} - {indicator} {operation} - TP {takeprofit_pips} SL {stoploss_pips}")
                     # alerts.append(f"\n{symbol} {timeframe} - {indicator} {operation}")
 
             except TypeError:  # ak je prazdna databaza
@@ -383,11 +383,9 @@ def get_alerts(imap):
                     else:
                         alerts.append(
                             f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
-                # alerts.append(f"\n{symbol} {timeframe} - {indicator} {operation}")
 
         if len(alerts) > 0:
             send_sms(" ".join(alerts))
-    #     TODO pridat ku kazdemu alertu aktualny stav ATR - ci je zlte stupajuce alebo fialove klesajuce
 
     else:
         mes = f"get_alerts - msgnums[0] is NONE!"
@@ -486,10 +484,6 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
             print("\nCommunicator is OFF!!!\n")
             log_sf_trader.warning("Communicator is OFF!!! - only manual trades")
 
-        # send_sms(f"\n{symbol} {timeframe} {indicator} {operation}")
-
-        # print(f"{symbol} {timeframe} - {indicator} {operation}")
-        # print(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
         return takeprofit_pips, stoploss_pips
 
     else:
@@ -499,7 +493,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                    EMAIL ALERT number: {alert_data['message_number']}"""
         log_sf_trader.error(mes)
 
-        return False, False
+        return False, False, False
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
@@ -532,7 +526,9 @@ def main():
           f"\n{date_now()} {time_now_hms()} Running...")
     log_sf_trader.info(f"STARTED --- {times} -------------------------------------------------")
 
-    while True:
+    x = 0
+    # while True:
+    while x < 4:
         check_time = time_now_ms()
         try:
             if check_time in times:
@@ -555,8 +551,12 @@ def main():
                 imap_gmail.close()
                 imap_gmail.logout()
 
-        except ConnectionResetError:
-            log_sf_trader.critical("ConnectionResetError")
+        # except ConnectionResetError:
+        #     log_sf_trader.critical("ConnectionResetError")
+        except Exception as error:
+            log_sf_trader.critical(f"{type(error).__name__}: {error}")
+            send_sms(f"{type(error).__name__}: {error}")
+            x = x + 1
 
         time.sleep(1)
 
