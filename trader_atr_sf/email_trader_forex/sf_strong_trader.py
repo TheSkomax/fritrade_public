@@ -5,6 +5,8 @@
 import imaplib
 import email
 import os
+import sys
+
 import dotenv
 import mysql.connector
 import time
@@ -184,7 +186,7 @@ def get_values(imap):
                                     message_ok = True
 
                                 except Exception as error:
-                                    log_sf_trader.critical(f"Gmail values err1: {type(error).__name__}, {error}")
+                                    log_sf_trader.critical(f"Gmail values err1-1: {type(error).__name__}, {error}")
                                     time.sleep(10)
 
                             message_data =  get_message_data(message, "value")
@@ -211,7 +213,7 @@ def get_values(imap):
                             log_sf_trader.warning(mes)
 
                     except TypeError:  # ak je prazdna databaza
-                        print(f"{msgnum} Database empty - first email value!")
+                        print(f"{date_now()} {time_now_hms()} {msgnum} Database empty - first email value!")
 
                         message_ok = False
                         while not message_ok:
@@ -221,7 +223,7 @@ def get_values(imap):
                                 message = email.message_from_bytes(data[0][1])
                                 message_ok = True
                             except Exception as error:
-                                log_sf_trader.critical(f"Gmail values err1: {type(error).__name__}, {error}")
+                                log_sf_trader.critical(f"Gmail values err1-2: {type(error).__name__}, {error}")
                                 time.sleep(10)
 
                         message_data = get_message_data(message, "value")
@@ -554,9 +556,11 @@ def main():
         # except ConnectionResetError:
         #     log_sf_trader.critical("ConnectionResetError")
         except Exception as error:
-            log_sf_trader.critical(f"{type(error).__name__}: {error}")
-            send_sms(f"{type(error).__name__}: {error}")
+            trace_back = sys.exc_info()[2]
+            log_sf_trader.critical(f"Line {trace_back.tb_lineno}: {type(error).__name__}: {error}")
+            send_sms(f"ERROR at line {trace_back.tb_lineno}: {type(error).__name__} {error}")
             x = x + 1
+            time.sleep(360)
 
         time.sleep(1)
 
