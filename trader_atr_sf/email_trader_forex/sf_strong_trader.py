@@ -528,9 +528,9 @@ def main():
           f"\n{date_now()} {time_now_hms()} Running...")
     log_sf_trader.info(f"STARTED --- {times} -------------------------------------------------")
 
-    x = 0
+    errors = 0
     # while True:
-    while x < 4:
+    while errors < 4:
         check_time = time_now_ms()
         try:
             if check_time in times:
@@ -557,9 +557,10 @@ def main():
         #     log_sf_trader.critical("ConnectionResetError")
         except Exception as error:
             trace_back = sys.exc_info()[2]
-            log_sf_trader.critical(f"Line {trace_back.tb_lineno}: {type(error).__name__}: {error}")
-            send_sms(f"ERROR at line {trace_back.tb_lineno}: {type(error).__name__} {error}")
-            x = x + 1
+            errorline = trace_back.tb_lineno
+            log_sf_trader.critical(f"Line {errorline}: {type(error).__name__}: {error}")
+            send_sms(f"ERROR at line {errorline}: {type(error).__name__} {error}")
+            errors = errors + 1
             time.sleep(360)
 
         time.sleep(1)
