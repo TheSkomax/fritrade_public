@@ -267,6 +267,12 @@ def get_values(imap):
 
 
 def get_alerts(imap):
+    def check_delayed():
+        pass
+
+    def add_to_delayed():
+        print("added to delayed (to be done)")
+
     # "Alert symbol timeframe indicator op"
     # "Alert EURCHF 1h        SQZ-KC60  buy"
     alerts = []
@@ -380,11 +386,17 @@ def get_alerts(imap):
                 takeprofit_pips, stoploss_pips = get_sl_tp(operation, symbol, timeframe, indicator)
                 if takeprofit_pips is not False:
                     if takeprofit_pips == stoploss_pips:
-                        alerts.append(
-                            f"\n{symbol} {timeframe} - {indicator} {operation} TP/SL {takeprofit_pips} ")
+                        if "SF" not in indicator:
+                            alerts.append(
+                                f"\n{symbol} {timeframe} - {indicator} {operation} TP/SL {takeprofit_pips} ")
+                        else:
+                            add_to_delayed()
                     else:
-                        alerts.append(
-                            f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                        if "SF" not in indicator:
+                            alerts.append(
+                                f"\n{symbol} {timeframe} - {indicator} {operation} TP {takeprofit_pips} SL {stoploss_pips}")
+                        else:
+                            add_to_delayed()
 
         if len(alerts) > 0:
             send_sms(" ".join(alerts))
@@ -532,36 +544,36 @@ def main():
     # while True:
     while errors < 4:
         check_time = time_now_ms()
-        try:
-            if check_time in times:
-                log_sf_trader.info("=== RUN STARTED")
-                log_sf_trader.info("Getting GMAIL imap")
+        # try:
+        if check_time in times:
+            log_sf_trader.info("=== RUN STARTED")
+            log_sf_trader.info("Getting GMAIL imap")
 
-                imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
-                imap_gmail.login(values_report_login, values_report_passw)
-                imap_gmail.select("Inbox")
+            imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+            imap_gmail.login(values_report_login, values_report_passw)
+            imap_gmail.select("Inbox")
 
-                log_sf_trader.info("Getting values...")
-                get_values(imap_gmail)
-                log_sf_trader.info("Done")
+            log_sf_trader.info("Getting values...")
+            get_values(imap_gmail)
+            log_sf_trader.info("Done")
 
-                log_sf_trader.info("Getting alerts...")
-                get_alerts(imap_gmail)
-                log_sf_trader.info("Done")
-                log_sf_trader.info("=== RUN OVER")
+            log_sf_trader.info("Getting alerts...")
+            get_alerts(imap_gmail)
+            log_sf_trader.info("Done")
+            log_sf_trader.info("=== RUN OVER")
 
-                imap_gmail.close()
-                imap_gmail.logout()
+            imap_gmail.close()
+            imap_gmail.logout()
 
         # except ConnectionResetError:
         #     log_sf_trader.critical("ConnectionResetError")
-        except Exception as error:
-            trace_back = sys.exc_info()[2]
-            errorline = trace_back.tb_lineno
-            log_sf_trader.critical(f"Line {errorline}: {type(error).__name__}: {error}")
-            send_sms(f"ERROR at line {errorline}: {type(error).__name__} {error}")
-            errors = errors + 1
-            time.sleep(360)
+        # except Exception as error:
+        #     trace_back = sys.exc_info()[2]
+        #     errorline = trace_back.tb_lineno
+        #     log_sf_trader.critical(f"Line {errorline}: {type(error).__name__}: {error}")
+        #     send_sms(f"ERROR at line {errorline}: {type(error).__name__} {error}")
+        #     errors = errors + 1
+        #     time.sleep(360)
 
         time.sleep(1)
 
