@@ -507,7 +507,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                    EMAIL ALERT number: {alert_data['message_number']}"""
         log_sf_trader.error(mes)
 
-        return False, False, False
+        return False, False
 
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
@@ -544,36 +544,34 @@ def main():
     # while True:
     while errors < 4:
         check_time = time_now_ms()
-        # try:
-        if check_time in times:
-            log_sf_trader.info("=== RUN STARTED")
-            log_sf_trader.info("Getting GMAIL imap")
+        try:
+            if check_time in times:
+                log_sf_trader.info("=== RUN STARTED")
+                log_sf_trader.info("Getting GMAIL imap")
 
-            imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
-            imap_gmail.login(values_report_login, values_report_passw)
-            imap_gmail.select("Inbox")
+                imap_gmail = imaplib.IMAP4_SSL("imap.gmail.com")
+                imap_gmail.login(values_report_login, values_report_passw)
+                imap_gmail.select("Inbox")
 
-            log_sf_trader.info("Getting values...")
-            get_values(imap_gmail)
-            log_sf_trader.info("Done")
+                log_sf_trader.info("Getting values...")
+                get_values(imap_gmail)
+                log_sf_trader.info("Done")
 
-            log_sf_trader.info("Getting alerts...")
-            get_alerts(imap_gmail)
-            log_sf_trader.info("Done")
-            log_sf_trader.info("=== RUN OVER")
+                log_sf_trader.info("Getting alerts...")
+                get_alerts(imap_gmail)
+                log_sf_trader.info("Done")
+                log_sf_trader.info("=== RUN OVER")
 
-            imap_gmail.close()
-            imap_gmail.logout()
+                imap_gmail.close()
+                imap_gmail.logout()
 
         # except ConnectionResetError:
         #     log_sf_trader.critical("ConnectionResetError")
-        # except Exception as error:
-        #     trace_back = sys.exc_info()[2]
-        #     errorline = trace_back.tb_lineno
-        #     log_sf_trader.critical(f"Line {errorline}: {type(error).__name__}: {error}")
-        #     send_sms(f"ERROR at line {errorline}: {type(error).__name__} {error}")
-        #     errors = errors + 1
-        #     time.sleep(360)
+        except Exception as error:
+            log_sf_trader.critical(f"{type(error).__name__}: {error}")
+            send_sms(f"ERROR {type(error).__name__} {error}")
+            errors = errors + 1
+            time.sleep(360)
 
         time.sleep(1)
 
