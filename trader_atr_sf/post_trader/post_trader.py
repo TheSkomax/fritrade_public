@@ -141,7 +141,7 @@ def db_write(message):
 
 def get_message_data(message):
     if message["type"] == "alert":
-        datetime_raw = (message['date'].replace("T", " ")).split(" ")
+        datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
         date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
 
@@ -166,7 +166,7 @@ def get_message_data(message):
                 "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
 
     if message["type"] == "value":
-        datetime_raw = (message['date'].replace("T", " ")).split(" ")
+        datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
         date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
 
