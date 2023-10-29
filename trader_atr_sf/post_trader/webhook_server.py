@@ -19,6 +19,7 @@ def db_write(message):
     print("\n===", data)
 
 
+
 def get_message_data(message):
     if message["type"] == "alert":
         datetime_raw = (message['date'].replace("T", " ")).split(" ")
@@ -75,4 +76,4 @@ def get_message_data(message):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=80)
