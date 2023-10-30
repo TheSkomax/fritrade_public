@@ -1,6 +1,9 @@
 from flask import Flask, request, abort
+import requests
+import json
 
 app = Flask(__name__)
+webhook_url = "http://127.0.0.1:5001/webhook"
 
 
 @app.route("/webhook", methods=["POST"])
@@ -8,21 +11,21 @@ def webhook():
     if request.method == "POST":
         # print(request.json)
         payload = request.json
-        db_write(payload)
+        send_to_trader(payload)
         return "OK", 200
     else:
         abort(400)
 
 
-def db_write(message):
+def send_to_trader(message):
     data = get_message_data(message)
-    print("\n===", data)
-
+    # print("\n===", data)
+    r = requests.post(webhook_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
 
 
 def get_message_data(message):
     if message["type"] == "alert":
-        datetime_raw = (message['date'].replace("T", " ")).split(" ")
+        datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
         date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
 
@@ -47,7 +50,7 @@ def get_message_data(message):
                 "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
 
     if message["type"] == "value":
-        datetime_raw = (message['date'].replace("T", " ")).split(" ")
+        datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
         date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
 
@@ -76,4 +79,5 @@ def get_message_data(message):
 
 
 if __name__ == "__main__":
+    print("Webhook server started!")
     app.run(host="0.0.0.0", port=80)
