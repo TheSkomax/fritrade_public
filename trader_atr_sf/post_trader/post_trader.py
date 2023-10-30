@@ -19,37 +19,37 @@ from twilio.rest import Client
 from flask import Flask, request, abort
 
 app = Flask(__name__)
-
-
 dotenv.load_dotenv(".env")
 table_name_part = ""
 active_charts = [{"chartname": "US500_1h",  "is_currency": False},
                  {"chartname": "VIX_1D",    "is_currency": False},
                  {"chartname": "EURCHF_1h", "is_currency": True},
                  {"chartname": "EURCHF_1D", "is_currency": True}]
-twilio_credentials = {
+twilio_creds = {
     "twilio_sid":      os.environ["twilio_sid"],
     "twilio_token":    os.environ["twilio_token"],
     "twilio_number":   os.environ["twilio_number"],
     "my_phone_number": os.environ["my_phone_number"]
 }
+mysql_creds = {
+    "mysql_user":  os.environ["mysql_user"],
+    "mysql_passw": os.environ["mysql_passw"],
+}
 
 # ---------------- MYSQL ----------------
-mysql_user = os.environ["mysql_user"]
-mysql_passw = os.environ["mysql_passw"]
 db_connection = mysql.connector.connect(host="localhost",
-                                        user=mysql_user,
-                                        passwd=mysql_passw,
+                                        user=mysql_creds["mysql_user"],
+                                        passwd=mysql_creds["mysql_passw"],
                                         database="fri_trade",
                                         autocommit=True)
 fri_trade_cursor = db_connection.cursor(buffered=True)
 
 # ---------------- LOGGING ----------------
-log_sf_trader = logging.getLogger("sf_logger")
+log_sf_trader = logging.getLogger("logger")
 log_sf_trader.setLevel(logging.INFO)
 log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
                                   "%d.%m.%Y %H:%M:%S")
-file_handler = logging.FileHandler("log_sf_trader.log")
+file_handler = logging.FileHandler("log_post_trader.log")
 file_handler.setFormatter(log_formatter)
 log_sf_trader.addHandler(file_handler)
 
@@ -128,16 +128,17 @@ def db_write(message):
         timeframe = data["timeframe"]
 
         insert_query = f"""insert into fri_trade.email_trader_values (timeReceived, dateReceived,
-                                                        message_sender, symbol, timeframe, price_close, value_atr_up,
-                                                        value_atr_down, processed, message_subject) VALUES ('{time_received}',
-                                                        '{date_dmy}', '{sender}', '{symbol}', '{timeframe}',
-                                                        {price_close}, {atrup_value}, {atrlow_value}, {False}, '{subject}')"""
+                            message_sender, symbol, timeframe, price_close, value_atr_up,
+                            value_atr_down, processed, message_subject) VALUES ('{time_received}',
+                            '{date_dmy}', '{sender}', '{symbol}', '{timeframe}',
+                            {price_close}, {atrup_value}, {atrlow_value}, {False}, '{subject}')"""
 
         fri_trade_cursor.execute(insert_query)
 
         mes = f"{symbol} {timeframe} - VALUE added!"
         print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.warning(mes)
+
 
 def get_message_data(message):
     if message["type"] == "alert":
@@ -291,13 +292,14 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 def send_sms(text_message):
     log_sf_trader.warning(f"Sending SMS: {text_message}")
-    client = Client(twilio_credentials["twilio_sid"],
-                    twilio_credentials["twilio_token"])
+    client = Client(twilio_creds["twilio_sid"],
+                    twilio_creds["twilio_token"])
     client.messages.create(body= text_message,
-                           from_=twilio_credentials["twilio_number"],
-                           to=   twilio_credentials["my_phone_number"])
+                           from_=twilio_creds["twilio_number"],
+                           to=   twilio_creds["my_phone_number"])
     log_sf_trader.warning(f"SMS has been sent: {text_message}")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
+    print("==============\nVIX ATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome\n==============")
+    app.run(port=5001)
