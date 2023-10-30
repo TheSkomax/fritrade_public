@@ -9,7 +9,7 @@ webhook_url = "http://127.0.0.1:5001/webhook"
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        print(request.json)
+        print(f"-------------------------------------------------------------------------\n{request.json}")
         payload = request.json
         send_to_trader(payload)
         return "OK", 200
