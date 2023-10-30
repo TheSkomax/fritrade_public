@@ -84,8 +84,8 @@ def date_now():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        # print(request.json)
         payload = request.json
+        # print(payload)
         db_write(payload)
         return "OK", 200
     else:
