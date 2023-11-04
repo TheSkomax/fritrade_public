@@ -3,7 +3,7 @@ import requests
 import json
 
 app = Flask(__name__)
-webhook_url = "http://127.0.0.1:5001/webhook"
+localhost_url = "http://127.0.0.1:5001/webhook"
 
 
 @app.route("/webhook", methods=["POST"])
@@ -20,7 +20,7 @@ def webhook():
 def send_to_trader(message):
     data = get_message_data(message)
     # print("\n===", data)
-    r = requests.post(webhook_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
+    requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
 
 
 def get_message_data(message):
@@ -79,5 +79,5 @@ def get_message_data(message):
 
 
 if __name__ == "__main__":
-    print("=======================\nWebhook server started!\n=======================")
+    print("=======================\nGateway server started!\n=======================")
     app.run(host="0.0.0.0", port=80)

@@ -20,11 +20,7 @@ from flask import Flask, request, abort
 
 app = Flask(__name__)
 dotenv.load_dotenv(".env")
-table_name_part = ""
-active_charts = [{"chartname": "US500_1h",  "is_currency": False},
-                 {"chartname": "VIX_1D",    "is_currency": False},
-                 {"chartname": "EURCHF_1h", "is_currency": True},
-                 {"chartname": "EURCHF_1D", "is_currency": True}]
+
 twilio_creds = {
     "twilio_sid":      os.environ["twilio_sid"],
     "twilio_token":    os.environ["twilio_token"],
@@ -81,11 +77,12 @@ def date_now():
     return date_actual
 
 
+# accepts POST requests from gateway.py
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
         payload = request.json
-        # print(payload)
+        print(payload)
         db_write(payload)
         return "OK", 200
     else:
@@ -98,10 +95,10 @@ def db_write(message):
 
     if message["type"] == "alert":
         time_received = data["time_received"]
-        date_dmy = data["date_dmy"]
-        sender = data["sender"]
-        subject = data["subject"]
-        symbol = data["symbol"]
+        date_dmy =  data["date_dmy"]
+        sender =    data["sender"]
+        subject =   data["subject"]
+        symbol =    data["symbol"]
         timeframe = data["timeframe"]
         operation = data["operation"]
         indicator = data["indicator"]
@@ -280,12 +277,12 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
 
 def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
     proc = subprocess.call(["python3",
-                            "./api_communicator.py", operation, price_close, takeprofit_pips, stoploss_pips, symbol,
+                            "./xapi_communicator.py", operation, price_close, takeprofit_pips, stoploss_pips, symbol,
                             timeframe
                             ])
     if proc == 2:
         subprocess.call(["python3",
-                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/api_communicator.py",
+                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/xapi_communicator.py",
                          operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe
                          ])
 
