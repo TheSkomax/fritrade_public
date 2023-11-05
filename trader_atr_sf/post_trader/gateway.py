@@ -46,7 +46,7 @@ def get_message_data(message):
         indicator = message["indicator"]
         # subject = f"{message["type"]} {symbol} {timeframe} {operation} {indicator}"
 
-        return {"time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
+        return {"type": "alert", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
                 "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
 
     if message["type"] == "value":
@@ -71,7 +71,7 @@ def get_message_data(message):
         symbol = message["symbol"]
         timeframe = message["timeframe"]
 
-        return {"time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
+        return {"type": "value", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
                 "price_close": price_close, "atrup_value": atrup_value,
                 "atrlow_value": atrlow_value, "symbol": symbol, "timeframe": timeframe}
     else:

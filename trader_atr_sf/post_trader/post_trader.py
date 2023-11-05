@@ -109,7 +109,7 @@ def db_write(message):
                         '{subject}')"""
         fri_trade_cursor.execute(insert_query)
 
-        mes = f"{symbol} {timeframe} - {operation} {indicator} alert added!"
+        mes = f"{symbol} {timeframe} - {operation} {indicator} ALERT added!"
         print(f"{date_now()} {time_now_hms()} {mes}")
         log_sf_trader.warning(mes)
 
