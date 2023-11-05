@@ -9,7 +9,7 @@ data = {"symbol": "GOLD",
         "type": "buy",
         }
 
-p = requests.post(url=vps_url,
+p = requests.post(url=webhook_url,
                   data=json.dumps(data),
                   headers={"Content-Type": "application/json"},
                   timeout=5)
