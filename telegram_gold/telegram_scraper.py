@@ -4,8 +4,6 @@
 import json
 import pickle
 import traceback
-
-import selenium
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.firefox.service import Service
@@ -192,7 +190,6 @@ def main():
             checker()
             ok = True
 
-
         # this element does not exist (or not loaded yet)
         except NoSuchElementException:
             # print("ERR:", traceback.print_exc())
@@ -228,7 +225,6 @@ def checker():
                 print("New values:\n", values)
                 log_telegram.warning(values)
                 time.sleep(40)
-
 
             else:
                 input("Press ENTER to break checker cycle and stop program")
