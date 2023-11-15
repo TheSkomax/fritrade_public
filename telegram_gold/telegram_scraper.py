@@ -20,6 +20,7 @@ from selenium.common.exceptions import *
 dotenv.load_dotenv(".env")
 mysql_user = os.environ["mysql_user"]
 mysql_passw = os.environ["mysql_passw"]
+phone_number = os.environ["phone_number"]
 
 options = webdriver.FirefoxOptions()
 options.binary_location = "/usr/bin/firefox"
@@ -57,13 +58,13 @@ db_connection = mysql.connector.connect(host="localhost",
 cursor = db_connection.cursor(buffered=True)
 
 # ---------------- LOGGING ----------------
-log_telegram = logging.getLogger("logger")
-log_telegram.setLevel(logging.INFO)
+log_telegram_gold = logging.getLogger("logger")
+log_telegram_gold.setLevel(logging.INFO)
 log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
                                   "%d.%m.%Y %H:%M:%S")
 file_handler = logging.FileHandler("log_telegram.log")
 file_handler.setFormatter(log_formatter)
-log_telegram.addHandler(file_handler)
+log_telegram_gold.addHandler(file_handler)
 
 print("Opening browser")
 driver = webdriver.Firefox(service=driverService,
@@ -136,7 +137,7 @@ def main():
 
     print("Waiting for phone number field")
     ok = False
-    keys_to_send = ["+", "4", "2", "1", "911936220", Keys.ENTER]
+    keys_to_send = ["+", "4", "2", "1", phone_number, Keys.ENTER]
     while not ok:
         try:
             phonenumber = driver.find_element(By.XPATH, xpaths["phonenumber"])
@@ -207,11 +208,16 @@ def main():
 
 def checker():
     print("Checker started...")
-    log_telegram.info("Checker started...")
+    log_telegram_gold.info("Checker started...")
+    count = 0
     while True:
         q = "select message_number from fri_trade.gold_messages order by message_number desc limit 1"
         cursor.execute(q)
         last_msg_num = int(cursor.fetchone()[0])
+
+        if count == 45:
+            log_telegram_gold.info("Still alive!")
+            count = 0
 
         try:
             new_msg_num = last_msg_num + 1
@@ -223,14 +229,19 @@ def checker():
 
             if values is not None:
                 print("New values:\n", values)
-                log_telegram.warning(values)
+                log_telegram_gold.warning(values)
+                count = count + 1
                 time.sleep(40)
 
             else:
+                err = "get_values returned None!"
+                print(err)
+                log_telegram_gold.error(err)
                 input("Press ENTER to break checker cycle and stop program")
                 break
 
         except NoSuchElementException:
+            count = count + 1
             time.sleep(40)
 
 
@@ -295,9 +306,9 @@ def get_values(message_list) -> dict or None:
         return values
 
     except:
-        print(traceback.print_exc(),
-              "\nParsing the values has failed! The format of messages has probably been changed!")
-        log_telegram.critical("Parsing the values has failed! The format of messages has probably been changed!")
+        err = "Parsing the values has failed! The format of messages has probably been changed!"
+        print(traceback.print_exc(), f"\n{err}")
+        log_telegram_gold.critical(err)
         return None
 
 
