@@ -278,6 +278,8 @@ def open_trade(operation, price_message, range_start, range_end, TP1, TP2, TP3, 
     # print("API:", "price_ask", price_ask, "price_bid", price_bid, "takeprofit_price",
     #       takeprofit_price, "stoploss_price", stoploss_price)
 
+    mode = "instant-hulvat"
+    # instant-hulvat - otvori okamzite ked pride signal, dava TP2 ak je urceny, ziadny trailing SL ani nic take
     transaction_data = xtb.open_buy_position(symbol=symbol, volume=lots,
                                              sl=stoploss_price, tp=takeprofit_price)
 
@@ -299,11 +301,11 @@ def open_trade(operation, price_message, range_start, range_end, TP1, TP2, TP3, 
         if opened_trade["order2"] == ordernum:
             positionnum = opened_trade["position"]
 
-            # q = f"""insert into fri_trade.positions_forex (date, time, positionnum, ordernum, symbol, ordertype, lots,
-            #          margin, conditionTriggered, timeframe, sent, opened, reason, protected) VALUES('{datetime_now("date")}',
-            #          '{datetime_now("hms")}', '{positionnum}', '{ordernum}', '{symbol}', '{operation}', '{lots}',
-            #          '{margin_required}', '{indicator}', '{timeframe}', '{sent}', '{opened}', '{message}', False)"""
-            # fri_trade_cursor.execute(q)
+            q = f"""insert into fri_trade.gold_positions (date, time, positionnum, ordernum, operation, lots,
+                     margin, mode_used, sent, opened, reason) VALUES('{datetime_now("date")}',
+                     '{datetime_now("hms")}', '{positionnum}', '{ordernum}', '{operation}', {lots},
+                     {margin_required}, {mode}, {sent}, {opened}, '{message}')"""
+            fri_trade_cursor.execute(q)
     xtb.logout()
 
 
