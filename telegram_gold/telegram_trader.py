@@ -62,12 +62,14 @@ def main():
 
     q = """select message_number from fri_trade.gold_messages where processed = 1 order by message_number desc limit 1"""
     cursor.execute(q)
-    last_msg_num = cursor.fetchone()[0]
+
     # print("last_msg_num",last_msg_num)
     q = """select * from fri_trade.gold_messages where processed = 0 order by message_number desc limit 1"""
 
     while True:
         try:
+            last_msg_num = cursor.fetchone()[0]
+
             cursor.execute(q)
             new_msg = cursor.fetchone()
             new_msg_num = new_msg[1]

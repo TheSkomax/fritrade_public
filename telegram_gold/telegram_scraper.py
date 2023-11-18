@@ -63,28 +63,16 @@ file_handler.setFormatter(log_formatter)
 log_telegram_gold.addHandler(file_handler)
 
 
-def time_now_hms():
-    time_object = datetime.now()
-    time_actual = time_object.strftime("%H:%M:%S")
-    # print(time_actual)
-    return time_actual
+def datetime_now(time_format: str) -> str:
+    time_dict = {
+        "hms": datetime.now().strftime("%H:%M:%S"),
+        "hm":  datetime.now().strftime("%H:%M"),
+        "date": date.today().strftime("%d.%m.%Y")
+    }
+    return time_dict[time_format]
 
 
-def time_now_ms():
-    time_object = datetime.now()
-    time_actual = time_object.strftime("%M:%S")
-    # print(time_actual)
-    return time_actual
-
-
-def date_now():
-    date_object = date.today()
-    date_actual = date_object.strftime("%d.%m.%Y")
-    # print(date_actual)
-    return date_actual
-
-
-print(f"{date_now()} {time_now_hms()} Opening browser")
+print(f"{datetime_now("date")} {datetime_now("hms")} Opening browser")
 log_telegram_gold.info("*****   Opening browser   **********************")
 driver = webdriver.Firefox(service=driverService,
                            options=options)
