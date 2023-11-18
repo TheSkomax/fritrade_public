@@ -66,9 +66,13 @@ def main():
     # print("last_msg_num",last_msg_num)
     q = """select * from fri_trade.gold_messages where processed = 0 order by message_number desc limit 1"""
 
+    count = 0
     while True:
         try:
             last_msg_num = cursor.fetchone()[0]
+            if count == 90:
+                log_trader.info("Still alive!")
+                count = 0
 
             cursor.execute(q)
             new_msg = cursor.fetchone()
@@ -116,8 +120,10 @@ def main():
                 q_set_processed = f"""UPDATE fri_trade.gold_messages SET processed = True where id = {values['id']}"""
                 cursor.execute(q_set_processed)
             else:
+                count = count + 1
                 time.sleep(20)
         except TypeError:
+            count = count + 1
             time.sleep(20)
 
 
