@@ -44,6 +44,8 @@ xpaths = {
 
     "xpath_chat3": "/html/body/div[2]/div/div[1]/div/div[2]/div/div/div/div/div[2]/div[3]",
     "xpath_checkchat3": "/html/body/div[2]/div/div[1]/div/div[2]/div/div/div/div/div[2]/div[3]/a/div[2]/div[1]/div[1]/h3",
+
+    "no_messages_yet": "/html/body/div[2]/div/div[2]/div[4]/div[2]/div/div[1]/div"
 }
 
 db_connection = mysql.connector.connect(host="localhost",
@@ -72,7 +74,7 @@ def datetime_now(time_format: str) -> str:
     return time_dict[time_format]
 
 
-print(f"{datetime_now("date")} {datetime_now("hms")} Opening browser")
+print(f'{datetime_now("date")} {datetime_now("hms")} Opening browser')
 log_telegram_gold.info("*****   Opening browser   **********************")
 driver = webdriver.Firefox(service=driverService,
                            options=options)
@@ -124,23 +126,32 @@ def main():
     cursor.execute(q)
     last_msg_num = cursor.fetchone()[0]
     num_tried = 0
-    ok = False
+    message_ok = False
+    chat_not_empty = False
 
-    while not ok:
+    while not chat_not_empty:
+        try:
+            time.sleep(3)
+            driver.find_element(By.XPATH, xpaths["no_messages_yet"])
+            print(f"Chat is NOT empty! Trying to find the message {last_msg_num}")
+            chat_not_empty = True
+        except NoSuchElementException:
+            num_tried = num_tried + 1
+            time.sleep(5)
+
+    num_tried = 0
+    while not message_ok:
         try:
             driver.find_element(By.XPATH, xpaths["message"] + str(last_msg_num) + "']")
             input(f"Message number {last_msg_num} is visible. Check if its still the last message and update "
                   f"database manually if needed, then press ENTER.")
             checker()
-            ok = True
+            message_ok = True
 
-        # this element does not exist (or not loaded yet)
+        # MESSAGE element does not exist (or not loaded yet)
         except NoSuchElementException:
-            # print("ERR:", traceback.print_exc())
             if num_tried < 10:
-                # last_msg_num = last_msg_num + 1
                 num_tried = num_tried + 1
-                # print("last_msg_num", last_msg_num)
                 time.sleep(1)
             else:
                 input(f"Cant find message number {last_msg_num}! Update database manually and press ENTER.")
@@ -336,7 +347,6 @@ def get_values(message_list, new_msg_num) -> dict or None:
             cursor.execute(q)
             # msg_ok = True
             return values
-
 
         except:
             err = "2 TPs - Parsing the values has failed! The format of messages has probably been changed!"
