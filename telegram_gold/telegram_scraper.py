@@ -263,7 +263,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "TP2": temp_list[5],
             "TP3": temp_list[6],
             "SL": temp_list[7],
-            "message_number": int(temp_list[8]),
+            "message_number": int(temp_list[9]),
         }
 
         # msg_ok = False
@@ -288,12 +288,12 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
+            print("INSERTING 1")
             q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, TP3, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
                     {values["TP2"]}, {values["TP3"]}, {values["SL"]}, {False})"""
-            print("INSERTING 1")
             cursor.execute(q)
             # msg_ok = True
             return values
@@ -338,12 +338,12 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
+            print("INSERTING 2")
             q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
                     {values["TP2"]}, {values["SL"]}, {False})"""
-            print("INSERTING 2")
             cursor.execute(q)
             # msg_ok = True
             return values
@@ -361,7 +361,8 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "operation": temp_list[2],
             "order_range": temp_list[3],
             "TP1": temp_list[4],
-            "SL": temp_list[6],
+            # "SL": temp_list[6], ?????????????????????????????????????????????????????????????????????????????????????????????????
+            "SL": temp_list[5],
             "message_number": int(temp_list[8]),
         }
 
@@ -385,12 +386,12 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
+            print("INSERTING 3")
             q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
                     {values["SL"]}, {False})"""
-            print("INSERTING 3")
             cursor.execute(q)
             # msg_ok = True
             return values
