@@ -253,7 +253,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
     # print("temp_list", temp_list)
     # input("2enter")
 
-    if "SL" in temp_list[7]:
+    if "SL" in str(temp_list[7]):
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
@@ -305,7 +305,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             log_telegram_gold.critical(err)
             return None
 
-    elif "SL" in temp_list[6]:
+    elif "SL" in str(temp_list[6]):
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
@@ -354,7 +354,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             log_telegram_gold.critical(err)
             return None
 
-    elif "SL" in temp_list[5]:
+    elif "SL" in str(temp_list[5]):
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
