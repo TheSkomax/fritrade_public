@@ -254,6 +254,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
     # input("2enter")
 
     if "SL" in str(temp_list[7]):
+        print("- 3 TPs")
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
@@ -289,10 +290,17 @@ def get_values(message_list, new_msg_num) -> dict or None:
 
             # print(values)
             print("INSERTING 1")
-            q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+            try:
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, TP3, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
+                    {values["TP2"]}, {values["TP3"]}, {values["SL"]}, {False})"""
+            except IndexError:
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+                    price_actual, operation, range_start, range_end, TP1, TP2, TP3, SL, processed)
+                    VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
+                    '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][0]}, {values["TP1"]}, 
                     {values["TP2"]}, {values["TP3"]}, {values["SL"]}, {False})"""
             cursor.execute(q)
             # msg_ok = True
@@ -306,6 +314,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             return None
 
     elif "SL" in str(temp_list[6]):
+        print("- 2 TPs")
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
@@ -339,10 +348,18 @@ def get_values(message_list, new_msg_num) -> dict or None:
 
             # print(values)
             print("INSERTING 2")
-            q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+            try:
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
+                    {values["TP2"]}, {values["SL"]}, {False})"""
+            except IndexError:
+                print("Price range (order_range) is only one number")
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+                    price_actual, operation, range_start, range_end, TP1, TP2, SL, processed)
+                    VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
+                    '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][0]}, {values["TP1"]}, 
                     {values["TP2"]}, {values["SL"]}, {False})"""
             cursor.execute(q)
             # msg_ok = True
@@ -355,6 +372,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             return None
 
     elif "SL" in str(temp_list[5]):
+        print("- 1 TP")
         values = {
             "date": temp_list[0],
             "price_actual": temp_list[1],
@@ -387,10 +405,17 @@ def get_values(message_list, new_msg_num) -> dict or None:
 
             # print(values)
             print("INSERTING 3")
-            q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+            try:
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, SL, processed)
                     VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
                     '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][1]}, {values["TP1"]}, 
+                    {values["SL"]}, {False})"""
+            except IndexError:
+                q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
+                    price_actual, operation, range_start, range_end, TP1, SL, processed)
+                    VALUES ({values["message_number"]}, '{values["time"]}', '{values["date"]}', {values["price_actual"]},
+                    '{values["operation"]}', {values["order_range"][0]}, {values["order_range"][0]}, {values["TP1"]}, 
                     {values["SL"]}, {False})"""
             cursor.execute(q)
             # msg_ok = True
