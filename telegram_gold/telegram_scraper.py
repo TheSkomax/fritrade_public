@@ -144,7 +144,7 @@ def main():
         try:
             driver.find_element(By.XPATH, xpaths["message"] + str(last_msg_num) + "']")
             input(f"Message number {last_msg_num} is visible. Check if its still the last message and update "
-                  f"database manually if needed, then press ENTER.")
+                  f"database manually if needed and RESTART or press ENTER to continue.")
             checker()
             message_ok = True
 
@@ -253,6 +253,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
     # print("temp_list", temp_list)
     # input("2enter")
 
+    print(f'\n{datetime_now("date")} {datetime_now("hms")}')
     if "SL" in str(temp_list[7]):
         print("- 3 TPs")
         values = {
@@ -289,7 +290,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
-            print("INSERTING 1")
+            print("INSERTING 3")
             try:
                 q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, TP3, SL, processed)
@@ -381,7 +382,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "TP1": temp_list[4],
             # "SL": temp_list[6], ?????????????????????????????????????????????????????????????????????????????????????????????????
             "SL": temp_list[5],
-            "message_number": int(temp_list[8]),
+            "message_number": int(temp_list[7]),
         }
 
         # msg_ok = False
@@ -404,7 +405,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
-            print("INSERTING 3")
+            print("INSERTING 1")
             try:
                 q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, SL, processed)
