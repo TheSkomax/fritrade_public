@@ -67,7 +67,6 @@ def datetime_now(time_format: str) -> str:
 def webhook():
     if request.method == "POST":
         payload = request.json
-        print(payload)
         write_to_db(payload)
 
         return "OK", 200
@@ -76,18 +75,17 @@ def webhook():
 
 
 def write_to_db(message):
-    data = extract_message_data(message)
-    print("\n=== DATA:", data)
+    print(f"\n------------------ Payload from gateway:\n{message}")
 
     if message["type"] == "values":
-        time_received = data["time_received"]
-        date_dmy = data["date_dmy"]
-        sender = data["sender"]
-        subject = data["subject"]
-        price_close = data["price_close"]
-        atr_value = data["atr_value"]
-        symbol = data["symbol"]
-        timeframe = data["timeframe"]
+        time_received = message["time_received"]
+        date_dmy = message["date_dmy"]
+        sender = message["sender"]
+        subject = message["subject"]
+        price_close = message["price_close"]
+        atr_value = message["atr_value"]
+        symbol = message["symbol"]
+        timeframe = message["timeframe"]
 
         insert_query = f"""insert into fri_trade.post_values (timeReceived, dateReceived,
                             message_sender, symbol, timeframe, price_close,
@@ -104,14 +102,14 @@ def write_to_db(message):
         check_last_alert_value()
 
     elif message["type"] == "alert":
-        time_received = data["time_received"]
-        date_dmy = data["date_dmy"]
-        sender = data["sender"]
-        subject = data["subject"]
-        symbol = data["symbol"]
-        timeframe = data["timeframe"]
-        operation = data["operation"]
-        indicator = data["indicator"]
+        time_received = message["time_received"]
+        date_dmy = message["date_dmy"]
+        sender = message["sender"]
+        subject = message["subject"]
+        symbol = message["symbol"]
+        timeframe = message["timeframe"]
+        operation = message["operation"]
+        indicator = message["indicator"]
 
         insert_query = f"""insert into fri_trade.email_trader_alerts (timeReceived, dateReceived,
                         message_sender, symbol, timeframe, indicator, operation,
@@ -125,60 +123,6 @@ def write_to_db(message):
         log_sf_trader.warning(mes)
 
         find_value_for_alert(time_received, date_dmy, operation, symbol, timeframe)
-
-
-def extract_message_data(message):
-    if message["type"] == "alert":
-        datetime_raw = (message['time_received'].replace("T", " ")).split(" ")
-        date_raw = datetime_raw[0].split("-")
-        date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
-
-        time_hms = (datetime_raw[1].replace("Z", "")).split(":")
-        time_hms[0] = int(time_hms[0])
-
-        if time_hms[0] < 22:
-            time_hms[0] = str(time_hms[0] + 2)
-        elif time_hms[0] == 23:
-            time_hms[0] = "1"
-        elif time_hms[0] == 22:
-            time_hms[0] = "0"
-        time_received = ":".join(time_hms)
-
-        symbol = message["symbol"]
-        timeframe = message["timeframe"]
-        operation = message["operation"]
-        indicator = message["indicator"]
-        # subject = f"{message["type"]} {symbol} {timeframe} {operation} {indicator}"
-
-        return {"type": "alert", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
-                "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
-
-    if message["type"] == "value":
-        datetime_raw = (message['time_received'].replace("T", " ")).split(" ")
-        date_raw = datetime_raw[0].split("-")
-        date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
-
-        time_hms = (datetime_raw[1].replace("Z", "")).split(":")
-        time_hms[0] = int(time_hms[0])
-
-        if time_hms[0] < 22:
-            time_hms[0] = str(time_hms[0] + 2)
-        elif time_hms[0] == 23:
-            time_hms[0] = "1"
-        elif time_hms[0] == 22:
-            time_hms[0] = "0"
-        time_received = ":".join(time_hms)
-
-        price_close = round(float(message["price"]), 5)
-        # atrup_value = round(float(message["ATR-upper"]), 5)
-        # atrlow_value = round(float(message["ATR-lower"]), 5)
-        atr_value = round(float(message["ATR-lower"]), 5)
-        symbol = message["symbol"]
-        timeframe = message["timeframe"]
-
-        return {"type": "value", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
-                "price_close": price_close, "atr_value": atr_value,
-                "symbol": symbol, "timeframe": timeframe}
 
 
 def get_sl_tp(operation, symbol, timeframe, indicator):

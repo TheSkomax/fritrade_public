@@ -8,7 +8,6 @@
 from flask import Flask, request, abort
 import requests
 import json
-from datetime import date
 from datetime import datetime
 
 app = Flask(__name__)
@@ -18,8 +17,8 @@ localhost_url = "http://127.0.0.1:5001/webhook"
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        print(f"\n-------------------------------------------------------------------------\n{request.json}")
         payload = request.json
+        print(f"\n------------------------------------------------------------------------- TV payload\n{payload}")
         send_request_to_posttrader(payload)
         return "OK", 200
     else:
@@ -27,12 +26,12 @@ def webhook():
 
 
 def send_request_to_posttrader(payload):
-    data = get_message_data(payload)
+    data = extract_message_data(payload)
     # print("\n======= DATA", data)
     requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
 
 
-def get_message_data(message):
+def extract_message_data(message):
     if message["type"] == "alert":
         datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
@@ -67,7 +66,7 @@ def get_message_data(message):
         return {"type": "alert", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
                 "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
 
-    if message["type"] == "value":
+    elif message["type"] == "value":
         datetime_raw = (message['time'].replace("T", " ")).split(" ")
         date_raw = datetime_raw[0].split("-")
         date_dmy = f"{date_raw[2]}.{date_raw[1]}.{date_raw[0]}"
@@ -101,8 +100,6 @@ def get_message_data(message):
 
         return {"type": "value", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
                 "price_close": price_close, "atr_value": atr_value, "symbol": symbol, "timeframe": timeframe}
-    else:
-        pass
 
 
 if __name__ == "__main__":
