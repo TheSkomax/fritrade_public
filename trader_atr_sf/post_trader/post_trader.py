@@ -75,7 +75,7 @@ def webhook():
 
 
 def write_to_db(message):
-    print(f"\n------------------ Payload from gateway:\n{message}")
+    print(f"\n------------------ Received new payload from gateway: ------------------\n{message}")
 
     if message["type"] == "value":
         time_received = message["time_received"]
@@ -249,10 +249,31 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
 
 
 def check_last_alert_value():
-    q = f"""select * from fri_trade.post_values where alert_type is not Null order by id desc limit 1"""
+    q = f"""select id, price_close, value_atr, alert_type, symbol, timeframe from fri_trade.post_values
+            where alert_type is not Null and processed = False order by id desc limit 1"""
     main_cursor.execute(q)
-    msg = main_cursor.fetchone()
-    print(msg)
+    value_data = main_cursor.fetchone()
+
+    if value_data is not None:
+        alert_value_id, alert_price_close, alert_value_atr, alert_operation, alert_symbol, alert_timeframe = value_data
+
+        q = f"""select id, price_close, value_atr from fri_trade.post_values
+                where symbol = '{alert_symbol}' and timeframe = '{alert_timeframe}' order by id desc limit 1"""
+        main_cursor.execute(q)
+        latest_data = main_cursor.fetchone()
+        latest_value_id, latest_price_close, latest_value_atr = latest_data
+
+        if alert_operation == "buy":
+            if alert_value_atr > latest_value_atr:
+                print("open trade1")
+                q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
+
+        elif alert_operation == "sell":
+            if alert_value_atr < latest_value_atr:
+                print("open trade2")
+                q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
+    else:
+        pass
 
 
 if __name__ == "__main__":
