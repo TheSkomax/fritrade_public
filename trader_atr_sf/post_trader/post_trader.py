@@ -1,7 +1,7 @@
 # ===================================================================================
 # POST TRADER WITH WEBHOOK SERVER
 #
-# VIX ATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome
+# VIX ATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome
 # ===================================================================================
 
 
@@ -81,7 +81,6 @@ def write_to_db(message):
         time_received = message["time_received"]
         date_dmy = message["date_dmy"]
         sender = message["sender"]
-        subject = message["subject"]
         price_close = message["price_close"]
         atr_value = message["atr_value"]
         symbol = message["symbol"]
@@ -89,9 +88,9 @@ def write_to_db(message):
 
         insert_query = f"""insert into fri_trade.post_values (timeReceived, dateReceived,
                             message_sender, symbol, timeframe, price_close,
-                            value_atr, processed, message_subject) VALUES ('{time_received}',
+                            value_atr, processed) VALUES ('{time_received}',
                             '{date_dmy}', '{sender}', '{symbol}', '{timeframe}',
-                            {price_close}, {atr_value}, {False}, '{subject}')"""
+                            {price_close}, {atr_value}, {False})"""
 
         main_cursor.execute(insert_query)
 
@@ -105,7 +104,6 @@ def write_to_db(message):
         time_received = message["time_received"]
         date_dmy = message["date_dmy"]
         sender = message["sender"]
-        subject = message["subject"]
         symbol = message["symbol"]
         timeframe = message["timeframe"]
         operation = message["operation"]
@@ -113,9 +111,8 @@ def write_to_db(message):
 
         insert_query = f"""insert into fri_trade.email_trader_alerts (timeReceived, dateReceived,
                         message_sender, symbol, timeframe, indicator, operation,
-                        processed, message_subject) VALUES('{time_received}', '{date_dmy}',
-                        '{sender}', '{symbol}', '{timeframe}', '{indicator}', '{operation}', {False},
-                        '{subject}')"""
+                        processed) VALUES('{time_received}', '{date_dmy}',
+                        '{sender}', '{symbol}', '{timeframe}', '{indicator}', '{operation}', {False})"""
         main_cursor.execute(insert_query)
 
         mes = f"{symbol} {timeframe} - {operation} {indicator} ALERT added!"
@@ -260,7 +257,8 @@ def check_last_alert_value():
 
 if __name__ == "__main__":
     # check_last_alert_value()
-    print("==============\nATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome\n==============")
+    print("""============================\nATR - obchoduju sa ATR zlomy potvrdene
+                2(1?) stupajucimi hodnotami po zlome\n============================""")
     app.run(port=5001)
 
     # symbol = "META"
