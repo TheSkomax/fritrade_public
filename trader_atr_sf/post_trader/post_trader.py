@@ -77,7 +77,7 @@ def webhook():
 def write_to_db(message):
     print(f"\n------------------ Payload from gateway:\n{message}")
 
-    if message["type"] == "values":
+    if message["type"] == "value":
         time_received = message["time_received"]
         date_dmy = message["date_dmy"]
         sender = message["sender"]
