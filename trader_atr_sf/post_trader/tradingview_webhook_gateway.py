@@ -18,7 +18,7 @@ localhost_url = "http://127.0.0.1:5001/webhook"
 def webhook():
     if request.method == "POST":
         payload = request.json
-        print(f"\n------------------------------------------------------------------------- TV payload\n{payload}")
+        print(f"\n-------------  TV payload  ------------------------------------------------------------\n{payload}")
         send_request_to_posttrader(payload)
         return "OK", 200
     else:

@@ -234,7 +234,7 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
     ok = False
     while not ok:
         q = f"""select id, timeReceived, dateReceived from fri_trade.post_values where 
-                symbol = '{symbol}' and timeframe = '{timeframe}' order by message_number desc limit 1"""
+                symbol = '{symbol}' and timeframe = '{timeframe}' order by id desc limit 1"""
         main_cursor.execute(q)
         value_id, value_time_received, value_date_received = main_cursor.fetchone()
         value_hour, value_min, value_sec = value_time_received.split(":")
@@ -249,7 +249,7 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
 
 
 def check_last_alert_value():
-    q = f"""select * from fri_trade.post_values where alert_type is not Null order by message_number desc limit 1"""
+    q = f"""select * from fri_trade.post_values where alert_type is not Null order by id desc limit 1"""
     main_cursor.execute(q)
     msg = main_cursor.fetchone()
     print(msg)
@@ -257,8 +257,7 @@ def check_last_alert_value():
 
 if __name__ == "__main__":
     # check_last_alert_value()
-    print("""============================\nATR - obchoduju sa ATR zlomy potvrdene
-                2(1?) stupajucimi hodnotami po zlome\n============================""")
+    print("============================\nATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n============================")
     app.run(port=5001)
 
     # symbol = "META"
