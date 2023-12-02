@@ -8,6 +8,8 @@
 from flask import Flask, request, abort
 import requests
 import json
+from datetime import date
+from datetime import datetime
 
 app = Flask(__name__)
 localhost_url = "http://127.0.0.1:5001/webhook"
@@ -16,12 +18,24 @@ localhost_url = "http://127.0.0.1:5001/webhook"
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        print(f"-------------------------------------------------------------------------\n{request.json}")
+        print(f"\n-------------------------------------------------------------------------\n{request.json}")
         payload = request.json
         send_request_to_posttrader(payload)
         return "OK", 200
     else:
         abort(400)
+
+
+def datetime_now(time_format: str) -> str:
+    time_dict = {
+        "hms": datetime.now().strftime("%H:%M:%S"),
+        "hm":  datetime.now().strftime("%H:%M"),
+        "ms":  datetime.now().strftime("%M:%S"),
+        "h":   datetime.now().hour,
+        "m":   datetime.now().minute,
+        "date": date.today().strftime("%d.%m.%Y")
+    }
+    return time_dict[time_format]
 
 
 def send_request_to_posttrader(payload):
@@ -39,13 +53,22 @@ def get_message_data(message):
         time_hms = (datetime_raw[1].replace("Z", "")).split(":")
         time_hms[0] = int(time_hms[0])
 
-        if time_hms[0] < 22:
-            time_hms[0] = str(time_hms[0] + 2)
-        elif time_hms[0] == 23:
-            time_hms[0] = "1"
-        elif time_hms[0] == 22:
-            time_hms[0] = "0"
-        time_received = ":".join(time_hms)
+        if (datetime.now().hour - time_hms[0]) == 2:
+            if time_hms[0] < 22:
+                time_hms[0] = str(time_hms[0] + 2)
+            elif time_hms[0] == 23:
+                time_hms[0] = "1"
+            elif time_hms[0] == 22:
+                time_hms[0] = "0"
+            time_received = ":".join(time_hms)
+        elif (datetime.now().hour - time_hms[0]) == 1:
+            if time_hms[0] < 22:
+                time_hms[0] = str(time_hms[0] + 1)
+            elif time_hms[0] == 23:
+                time_hms[0] = "0"
+            elif time_hms[0] == 22:
+                time_hms[0] = "23"
+            time_received = ":".join(time_hms)
 
         symbol = message["symbol"]
         timeframe = message["timeframe"]
@@ -64,13 +87,22 @@ def get_message_data(message):
         time_hms = (datetime_raw[1].replace("Z", "")).split(":")
         time_hms[0] = int(time_hms[0])
 
-        if time_hms[0] < 22:
-            time_hms[0] = str(time_hms[0] + 2)
-        elif time_hms[0] == 23:
-            time_hms[0] = "1"
-        elif time_hms[0] == 22:
-            time_hms[0] = "0"
-        time_received = ":".join(time_hms)
+        if (datetime.now().hour - time_hms[0]) == 2:
+            if time_hms[0] < 22:
+                time_hms[0] = str(time_hms[0] + 2)
+            elif time_hms[0] == 23:
+                time_hms[0] = "1"
+            elif time_hms[0] == 22:
+                time_hms[0] = "0"
+            time_received = ":".join(time_hms)
+        elif (datetime.now().hour - time_hms[0]) == 1:
+            if time_hms[0] < 22:
+                time_hms[0] = str(time_hms[0] + 1)
+            elif time_hms[0] == 23:
+                time_hms[0] = "0"
+            elif time_hms[0] == 22:
+                time_hms[0] = "23"
+            time_received = ":".join(time_hms)
 
         price_close = round(float(message["price"]), 5)
         # atrup_value = round(float(message["ATR-upper"]), 5)
