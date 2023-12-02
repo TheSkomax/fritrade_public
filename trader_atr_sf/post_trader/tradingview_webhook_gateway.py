@@ -1,3 +1,10 @@
+# ===================================================================================
+# POST TRADER WITH WEBHOOK SERVER - GATEWAY: Tradingview -> VPS
+#
+# ATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome
+# ===================================================================================
+
+
 from flask import Flask, request, abort
 import requests
 import json
@@ -11,14 +18,14 @@ def webhook():
     if request.method == "POST":
         print(f"-------------------------------------------------------------------------\n{request.json}")
         payload = request.json
-        send_to_trader(payload)
+        send_request_to_posttrader(payload)
         return "OK", 200
     else:
         abort(400)
 
 
-def send_to_trader(message):
-    data = get_message_data(message)
+def send_request_to_posttrader(payload):
+    data = get_message_data(payload)
     # print("\n===", data)
     requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
 
@@ -66,14 +73,14 @@ def get_message_data(message):
         time_received = ":".join(time_hms)
 
         price_close = round(float(message["price"]), 5)
-        atrup_value = round(float(message["ATR-upper"]), 5)
-        atrlow_value = round(float(message["ATR-lower"]), 5)
+        # atrup_value = round(float(message["ATR-upper"]), 5)
+        # atrlow_value = round(float(message["ATR-lower"]), 5)
+        atr_value = round(float(message["ATR"]), 5)
         symbol = message["symbol"]
         timeframe = message["timeframe"]
 
         return {"type": "value", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
-                "price_close": price_close, "atrup_value": atrup_value,
-                "atrlow_value": atrlow_value, "symbol": symbol, "timeframe": timeframe}
+                "price_close": price_close, "atr_value": atr_value, "symbol": symbol, "timeframe": timeframe}
     else:
         pass
 
