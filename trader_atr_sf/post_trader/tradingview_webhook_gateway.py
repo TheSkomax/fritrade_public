@@ -26,21 +26,9 @@ def webhook():
         abort(400)
 
 
-def datetime_now(time_format: str) -> str:
-    time_dict = {
-        "hms": datetime.now().strftime("%H:%M:%S"),
-        "hm":  datetime.now().strftime("%H:%M"),
-        "ms":  datetime.now().strftime("%M:%S"),
-        "h":   datetime.now().hour,
-        "m":   datetime.now().minute,
-        "date": date.today().strftime("%d.%m.%Y")
-    }
-    return time_dict[time_format]
-
-
 def send_request_to_posttrader(payload):
     data = get_message_data(payload)
-    # print("\n===", data)
+    # print("\n======= DATA", data)
     requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
 
 
