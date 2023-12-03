@@ -161,8 +161,8 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
                   "message_number":  value_sel_query_result[5]}
     # print(value_data)
 
-    # alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.EURCHF_1h_alert_emails_sf_strong
-    #                    order by id desc limit 1"""
+    # alert_query = f"""select timeReceived, dateReceived, message_number
+    #                   from fri_trade.EURCHF_1h_alert_emails_sf_strong order by id desc limit 1"""
     alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.email_trader_alerts where
                        symbol = '{symbol}' and timeframe = '{timeframe}' order by id desc limit 1"""
     main_cursor.execute(alert_query)
@@ -294,9 +294,12 @@ def check_last_alert_value():
 
 
 if __name__ == "__main__":
-    # check_last_alert_value()
-    print("============================\nATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n============================")
-    threading.Thread(target=writing, name="writing")
+    print("==========================================================================================\n"
+          "ATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n"
+          "==========================================================================================")
+    log_post_trader.info("=== STARTED ===")
+
+    threading.Thread(target=writing, name="writing").start()
     app.run(port=5001)
 
     # symbol = "META"
