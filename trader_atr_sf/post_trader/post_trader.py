@@ -69,7 +69,7 @@ def webhook():
     if request.method == "POST":
         # payload = request.json
         mainqueue.put(request.json)
-        log_post_trader.info("Received request was added to queue")
+        log_post_trader.info("Received post request was added to queue")
         # write_to_db(payload)
         # run_thread(payload)
 
@@ -92,7 +92,7 @@ def writing():
 
 # def write_to_db(message):
 def write_to_db(message):
-    print(f"\n------------------ Received new payload from gateway: ------------------\n{message}")
+    print(f"\n\n------------------ Received new payload from gateway: ------------------\n{message}")
 
     if message["type"] == "value":
         time_received = message["time_received"]
@@ -111,7 +111,7 @@ def write_to_db(message):
 
         main_cursor.execute(insert_query)
 
-        mes = f"{symbol} {timeframe} - VALUE added!"
+        mes = f"{symbol} {timeframe} - VALUE added to db!"
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
         log_post_trader.warning(mes)
 
@@ -132,7 +132,7 @@ def write_to_db(message):
                         '{sender}', '{symbol}', '{timeframe}', '{indicator}', '{operation}', {False})"""
         main_cursor.execute(insert_query)
 
-        mes = f"{symbol} {timeframe} - {operation} {indicator} ALERT added!"
+        mes = f"{symbol} {timeframe} - {operation} {indicator} ALERT added to db!"
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
         log_post_trader.warning(mes)
 
@@ -281,12 +281,12 @@ def check_last_alert_value():
         latest_value_id, latest_price_close, latest_value_atr = latest_data
 
         if alert_operation == "buy":
-            if alert_value_atr > latest_value_atr:
+            if alert_value_atr < latest_value_atr:
                 print("open trade1")
                 q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
 
         elif alert_operation == "sell":
-            if alert_value_atr < latest_value_atr:
+            if alert_value_atr > latest_value_atr:
                 print("open trade2")
                 q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
     else:

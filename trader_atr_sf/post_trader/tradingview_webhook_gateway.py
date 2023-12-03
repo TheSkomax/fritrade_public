@@ -4,31 +4,43 @@
 # ATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome
 # ===================================================================================
 
-
+import threading
 from flask import Flask, request, abort
 import requests
 import json
 from datetime import datetime
+import queue
+import time
 
 app = Flask(__name__)
 localhost_url = "http://127.0.0.1:5001/webhook"
+mainqueue = queue.Queue()
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
         payload = request.json
-        print(f"\n-------------  TV payload  ------------------------------------------------------------\n{payload}")
-        send_request_to_posttrader(payload)
+        print(f"\n\n------------------ New TV payload received ------------------"
+              f"\n{payload}")
+        # send_request_to_posttrader(payload)
+        mainqueue.put(payload)
+
         return "OK", 200
     else:
         abort(400)
 
 
-def send_request_to_posttrader(payload):
-    data = extract_message_data(payload)
-    # print("\n======= DATA", data)
-    requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
+def send_request_to_posttrader():
+    print("send_request_to_posttrader thread started!")
+    while True:
+        if not mainqueue.empty():
+            payload = mainqueue.get()
+            data = extract_message_data(payload)
+            # print("\n======= DATA", data)
+            requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
+        else:
+            time.sleep(30)
 
 
 def extract_message_data(message):
@@ -104,4 +116,5 @@ def extract_message_data(message):
 
 if __name__ == "__main__":
     print("=======================\nGateway server started!\n=======================")
+    threading.Thread(target=send_request_to_posttrader, name="send_request_to_posttrader").start()
     app.run(host="0.0.0.0", port=80)
