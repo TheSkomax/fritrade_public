@@ -92,7 +92,7 @@ def writing():
 
 # def write_to_db(message):
 def write_to_db(message):
-    print(f"\n\n------------------ Received new payload from gateway: ------------------\n{message}")
+    print(f"\n\n------------------ Received new payload from gateway ------------------\n{message}")
 
     if message["type"] == "value":
         time_received = message["time_received"]
@@ -108,7 +108,6 @@ def write_to_db(message):
                             value_atr, processed) VALUES ('{time_received}',
                             '{date_dmy}', '{sender}', '{symbol}', '{timeframe}',
                             {price_close}, {atr_value}, {False})"""
-
         main_cursor.execute(insert_query)
 
         mes = f"{symbol} {timeframe} - VALUE added to db!"
@@ -137,6 +136,7 @@ def write_to_db(message):
         log_post_trader.warning(mes)
 
         find_value_for_alert(time_received, date_dmy, operation, symbol, timeframe)
+        check_last_alert_value()
 
 
 def get_sl_tp(operation, symbol, timeframe, indicator):
@@ -248,8 +248,8 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
     alert_hour, alert_min, alert_sec = alert_time_received.split(":")
 
     log_post_trader.info("Trying to find value that corresponds with alert time/date")
-    ok = False
-    while not ok:
+    found = False
+    while not found:
         q = f"""select id, timeReceived, dateReceived from fri_trade.post_values where 
                 symbol = '{symbol}' and timeframe = '{timeframe}' order by id desc limit 1"""
         main_cursor.execute(q)
@@ -260,7 +260,7 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
             q = f"""update fri_trade.post_values set alert_type = '{operation}' where id = {value_id}"""
             main_cursor.execute(q)
             log_post_trader.info("DONE")
-            ok = True
+            found = True
         else:
             time.sleep(5)
 
@@ -281,16 +281,17 @@ def check_last_alert_value():
         latest_value_id, latest_price_close, latest_value_atr = latest_data
 
         if alert_operation == "buy":
-            if alert_value_atr < latest_value_atr:
-                print("open trade1")
+            if latest_value_atr > alert_value_atr:
+                print("*\n*\n*\n*\nopen trade BUY")
+                log_post_trader.critical("BUY !!!!")
                 q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
-
+                main_cursor.execute(q)
         elif alert_operation == "sell":
-            if alert_value_atr > latest_value_atr:
-                print("open trade2")
+            if latest_value_atr < alert_value_atr:
+                print("*\n*\n*\n*\nopen trade SELL")
+                log_post_trader.critical("SELL !!!!")
                 q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
-    else:
-        pass
+                main_cursor.execute(q)
 
 
 if __name__ == "__main__":

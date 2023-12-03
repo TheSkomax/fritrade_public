@@ -58,7 +58,7 @@ def check_time(message_time: str) -> bool:
 
 def main():
     print(f"{datetime_now('date')} {datetime_now('hms')} Starting trader")
-    log_trader.info("*****   Starting trader   **********************")
+    log_trader.info("*****   Starting Telegram trader   **********************")
 
     q = """select message_number from fri_trade.gold_messages where processed = 1 order by message_number desc limit 1"""
     cursor.execute(q)
