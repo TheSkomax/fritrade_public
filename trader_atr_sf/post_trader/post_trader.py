@@ -4,10 +4,7 @@
 # VIX ATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome
 # ===================================================================================
 
-
 import os
-import traceback
-
 import dotenv
 import mysql.connector
 import time
@@ -17,9 +14,13 @@ import subprocess
 import logging
 from twilio.rest import Client
 from flask import Flask, request, abort
+import queue
+import threading
 
 app = Flask(__name__)
 dotenv.load_dotenv(".env")
+mainqueue = queue.Queue()
+
 
 twilio_creds = {
     "twilio_sid":      os.environ["twilio_sid"],
@@ -41,13 +42,13 @@ db_connection = mysql.connector.connect(host="localhost",
 main_cursor = db_connection.cursor(buffered=True)
 
 # ---------------- LOGGING ----------------
-log_sf_trader = logging.getLogger("logger")
-log_sf_trader.setLevel(logging.INFO)
+log_post_trader = logging.getLogger("logger")
+log_post_trader.setLevel(logging.INFO)
 log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
                                   "%d.%m.%Y %H:%M:%S")
 file_handler = logging.FileHandler("log_post_trader.log")
 file_handler.setFormatter(log_formatter)
-log_sf_trader.addHandler(file_handler)
+log_post_trader.addHandler(file_handler)
 
 
 def datetime_now(time_format: str) -> str:
@@ -66,14 +67,30 @@ def datetime_now(time_format: str) -> str:
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        payload = request.json
-        write_to_db(payload)
+        # payload = request.json
+        mainqueue.put(request.json)
+        log_post_trader.info("Received request was added to queue")
+        # write_to_db(payload)
+        # run_thread(payload)
 
         return "OK", 200
     else:
         abort(400)
 
 
+def writing():
+    m = "Writing thread started!"
+    print(m)
+    log_post_trader.info(m)
+    while True:
+        if not mainqueue.empty():
+            message = mainqueue.get()
+            write_to_db(message)
+        else:
+            time.sleep(30)
+
+
+# def write_to_db(message):
 def write_to_db(message):
     print(f"\n------------------ Received new payload from gateway: ------------------\n{message}")
 
@@ -96,7 +113,7 @@ def write_to_db(message):
 
         mes = f"{symbol} {timeframe} - VALUE added!"
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
-        log_sf_trader.warning(mes)
+        log_post_trader.warning(mes)
 
         check_last_alert_value()
 
@@ -117,7 +134,7 @@ def write_to_db(message):
 
         mes = f"{symbol} {timeframe} - {operation} {indicator} ALERT added!"
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
-        log_sf_trader.warning(mes)
+        log_post_trader.warning(mes)
 
         find_value_for_alert(time_received, date_dmy, operation, symbol, timeframe)
 
@@ -178,12 +195,12 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
 
         mes = f" !!! OPENING TRADE:   {symbol} {timeframe} - {indicator} {operation}"
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
-        log_sf_trader.warning(mes)
+        log_post_trader.warning(mes)
 
         mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {datetime_now("h")},
                    VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {datetime_now("date")}
                    EMAIL ALERT number: {alert_data['message_number']}"""
-        log_sf_trader.warning(mes)
+        log_post_trader.warning(mes)
 
         manual_only = True
         if not manual_only:
@@ -191,7 +208,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
 
         else:
             print("\nCommunicator is OFF!!!\n")
-            log_sf_trader.warning("Communicator is OFF!!! - only manual trades")
+            log_post_trader.warning("Communicator is OFF!!! - only manual trades")
 
         return takeprofit_pips, stoploss_pips
 
@@ -200,7 +217,7 @@ def get_sl_tp(operation, symbol, timeframe, indicator):
         mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {datetime_now("h")},
                    VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {datetime_now("date")},
                    EMAIL ALERT number: {alert_data['message_number']}"""
-        log_sf_trader.error(mes)
+        log_post_trader.error(mes)
 
         return False, False
 
@@ -218,19 +235,19 @@ def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol,
 
 
 def send_sms(text_message):
-    log_sf_trader.warning(f"Sending SMS: {text_message}")
+    log_post_trader.warning(f"Sending SMS: {text_message}")
     client = Client(twilio_creds["twilio_sid"],
                     twilio_creds["twilio_token"])
     client.messages.create(body= text_message,
                            from_=twilio_creds["twilio_number"],
                            to=   twilio_creds["my_phone_number"])
-    log_sf_trader.warning(f"SMS has been sent: {text_message}")
+    log_post_trader.warning(f"SMS has been sent: {text_message}")
 
 
 def find_value_for_alert(alert_time_received, alert_date_received, operation, symbol, timeframe):
     alert_hour, alert_min, alert_sec = alert_time_received.split(":")
 
-    log_sf_trader.info("Trying to find value that corresponds with alert time/date")
+    log_post_trader.info("Trying to find value that corresponds with alert time/date")
     ok = False
     while not ok:
         q = f"""select id, timeReceived, dateReceived from fri_trade.post_values where 
@@ -242,7 +259,7 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
         if alert_hour == value_hour and int(alert_min) == int(value_min) and alert_date_received == value_date_received:
             q = f"""update fri_trade.post_values set alert_type = '{operation}' where id = {value_id}"""
             main_cursor.execute(q)
-            log_sf_trader.info("DONE")
+            log_post_trader.info("DONE")
             ok = True
         else:
             time.sleep(5)
@@ -279,6 +296,7 @@ def check_last_alert_value():
 if __name__ == "__main__":
     # check_last_alert_value()
     print("============================\nATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n============================")
+    threading.Thread(target=writing, name="writing")
     app.run(port=5001)
 
     # symbol = "META"
