@@ -27,7 +27,7 @@ log_trader = logging.getLogger("logger")
 log_trader.setLevel(logging.INFO)
 log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
                                   "%d.%m.%Y %H:%M:%S")
-file_handler = logging.FileHandler("log_trader.log")
+file_handler = logging.FileHandler("log_gold_trader.log")
 file_handler.setFormatter(log_formatter)
 log_trader.addHandler(file_handler)
 
@@ -59,8 +59,8 @@ def check_time(message_time: str) -> bool:
 
 
 def main():
-    print(f"{datetime_now('date')} {datetime_now('hms')}   Starting trader")
-    log_trader.info("*****   Starting Telegram trader   **********************")
+    print(f"{datetime_now('date')} {datetime_now('hms')}   Starting trader ------------------")
+    log_trader.info("*****************   Starting Telegram trader   *****************")
 
     # q = """select message_number from fri_trade.gold_messages
     #         where processed = 1 order by message_number desc limit 1"""
@@ -106,6 +106,8 @@ def main():
                 "processed": new_msg[12],
             }
             if new_msg_values["message_date"] == datetime_now("date") and check_time(new_msg_values["message_time"]):
+                print(f"{datetime_now('date')} {datetime_now('hms')} Opening {new_msg_values['operation']} trade -"
+                      f"msg num {new_msg_values['message_number']}")
                 log_trader.info("Date and time OK")
                 log_trader.warning("Starting communicator!")
 
@@ -119,7 +121,8 @@ def main():
                              new_msg_values["SL"],
                              )
             else:
-                warn = f"Message number {new_msg_values['message_number']} is old - NO TRADE!!! (setting as processed)"
+                warn = (f"{datetime_now('date')} {datetime_now('hms')} Message number"
+                        f"{new_msg_values['message_number']} is OLD - NO TRADE!!! (setting to processed)")
                 print(warn)
                 log_trader.warning(warn)
 
