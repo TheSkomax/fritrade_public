@@ -89,7 +89,7 @@ def writing():
 
 
 def write_to_db(message):
-    print(f"\n\n{datetime_now('date')} {datetime_now('hms')}      Received new payload from gateway"
+    print(f"\n\n{datetime_now('date')} {datetime_now('hms')} ------ Received new payload from gateway"
           f" ------------------\n{message}")
 
     if message["type"] == "value":
