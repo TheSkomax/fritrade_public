@@ -7,7 +7,6 @@ import mysql.connector
 from datetime import date
 from datetime import datetime
 
-import xAPIConnector
 
 dotenv.load_dotenv(".env")
 mysql_user = os.environ["mysql_user"]
@@ -15,6 +14,7 @@ mysql_passw = os.environ["mysql_passw"]
 xtb_demo_main = os.environ["xtb_demo_main"]
 xtb_pw = os.environ["xtb_pw"]
 
+# ---------------- MYSQL ----------------
 db_connection = mysql.connector.connect(host="localhost",
                                         user=mysql_user,
                                         passwd=mysql_passw,
@@ -22,6 +22,7 @@ db_connection = mysql.connector.connect(host="localhost",
                                         autocommit=True)
 cursor = db_connection.cursor(buffered=True)
 
+# ---------------- LOGGING ----------------
 log_trader = logging.getLogger("logger")
 log_trader.setLevel(logging.INFO)
 log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
@@ -50,6 +51,7 @@ def check_time(message_time: str) -> bool:
         if (minute_actual == minute_message or (minute_actual <= 4 and minute_message >= 56) or
                 minute_actual <= minute_message + 5):
             return True
+
         else:
             return False
     else:
@@ -57,74 +59,80 @@ def check_time(message_time: str) -> bool:
 
 
 def main():
-    print(f"{datetime_now('date')} {datetime_now('hms')} Starting trader")
+    print(f"{datetime_now('date')} {datetime_now('hms')}   Starting trader")
     log_trader.info("*****   Starting Telegram trader   **********************")
 
-    q = """select message_number from fri_trade.gold_messages where processed = 1 order by message_number desc limit 1"""
-    cursor.execute(q)
+    # q = """select message_number from fri_trade.gold_messages
+    #         where processed = 1 order by message_number desc limit 1"""
+    # cursor.execute(q)
 
-    # print("last_msg_num",last_msg_num)
-    q = """select * from fri_trade.gold_messages where processed = 0 order by message_number desc limit 1"""
+    # print("last_processed_msg_num",last_processed_msg_num)
+    q_select_new_unprocessed_value = """select * from fri_trade.gold_messages where processed = 0 order
+                                        by message_number desc limit 1"""
 
     count = 0
     while True:
-        try:
-            last_msg_num = cursor.fetchone()[0]
-            if count == 90:
-                log_trader.info("Still alive!")
-                count = 0
+        # try:
+        if count == 90:
+            log_trader.info("Still alive!")
+            count = 0
 
-            cursor.execute(q)
-            new_msg = cursor.fetchone()
-            new_msg_num = new_msg[1]
-            # print("new_msg_num", new_msg_num)
+        # last_processed_msg = cursor.fetchone()
+        # if last_processed_msg is not None:
+        #     last_processed_msg_num = last_processed_msg[0]
 
-            if new_msg_num > last_msg_num:
-                log_trader.info("New value in database!")
-                values = {
-                    "id": int(new_msg[0]),
-                    "message_number": int(new_msg[1]),
-                    "message_time": new_msg[2],
-                    "message_date": new_msg[3],
+        cursor.execute(q_select_new_unprocessed_value)
+        new_msg = cursor.fetchone()
+        # new_msg_num = new_msg[1]
 
-                    "price_actual": new_msg[4],
-                    "operation": new_msg[5],
+        if new_msg is not None:
+            log_trader.info("New value in database!")
+            new_msg_values = {
+                "id": int(new_msg[0]),
+                "message_number": int(new_msg[1]),
+                "message_time": new_msg[2],
+                "message_date": new_msg[3],
 
-                    "range_start": new_msg[6],
-                    "range_end": new_msg[7],
-                    "TP1": new_msg[8],
-                    "TP2": new_msg[9],
-                    "TP3": new_msg[10],
-                    "SL": new_msg[11],
+                "price_actual": new_msg[4],
+                "operation": new_msg[5],
 
-                    "processed": new_msg[12],
-                }
-                if values["message_date"] == datetime_now("date") and check_time(values["message_time"]):
-                    log_trader.info("Date and time OK")
-                    log_trader.warning("Starting communicator!")
+                "range_start": new_msg[6],
+                "range_end": new_msg[7],
+                "TP1": new_msg[8],
+                "TP2": new_msg[9],
+                "TP3": new_msg[10],
+                "SL": new_msg[11],
 
-                    communicator(values["operation"],
-                                 values["price_actual"],
-                                 values["range_start"],
-                                 values["range_end"],
-                                 values["TP1"],
-                                 values["TP2"],
-                                 values["TP3"],
-                                 values["SL"],
-                                 )
-                else:
-                    warn = f"Value number {values['message_number']} is old, NO TRADE!!!"
-                    print(warn)
-                    log_trader.warning(warn)
+                "processed": new_msg[12],
+            }
+            if new_msg_values["message_date"] == datetime_now("date") and check_time(new_msg_values["message_time"]):
+                log_trader.info("Date and time OK")
+                log_trader.warning("Starting communicator!")
 
-                q_set_processed = f"""UPDATE fri_trade.gold_messages SET processed = True where id = {values['id']}"""
-                cursor.execute(q_set_processed)
+                communicator(new_msg_values["operation"],
+                             new_msg_values["price_actual"],
+                             new_msg_values["range_start"],
+                             new_msg_values["range_end"],
+                             new_msg_values["TP1"],
+                             new_msg_values["TP2"],
+                             new_msg_values["TP3"],
+                             new_msg_values["SL"],
+                             )
             else:
-                count = count + 1
-                time.sleep(20)
-        except TypeError:
+                warn = f"Value number {new_msg_values['message_number']} is old, NO TRADE!!!"
+                print(warn)
+                log_trader.warning(warn)
+
+            q_set_processed = f"""UPDATE fri_trade.gold_messages SET processed = True
+                                  here id = {new_msg_values['id']}"""
+            cursor.execute(q_set_processed)
+
+        else:
             count = count + 1
             time.sleep(20)
+        # except TypeError:
+        #     count = count + 1
+        #     time.sleep(20)
 
 
 def communicator(operation, price_actual, range_start, range_end, TP1, TP2, TP3, SL):
@@ -155,3 +163,6 @@ def communicator(operation, price_actual, range_start, range_end, TP1, TP2, TP3,
 
 if __name__ == '__main__':
     main()
+
+# TODO: uz nebude nikdy uplne prazdny chat kedze tam je ta pripnuta sprava. Upravit to tak aby si to vedelo zistit, ze
+#       tam ziadne signalove spravy nie su
