@@ -325,7 +325,7 @@ def open_trade(operation, price_message, range_start, range_end, TP1, TP2, TP3, 
             q = f"""insert into fri_trade.gold_positions (date, time, positionnum, ordernum, operation, lots,
                      margin, mode_used, sent, opened, reason) VALUES('{datetime_now("date")}',
                      '{datetime_now("hms")}', '{positionnum}', '{ordernum}', '{operation}', {lots},
-                     {margin_required}, {mode}, {sent}, {opened}, '{message}')"""
+                     {margin_required}, '{mode}', {sent}, {opened}, '{message}')"""
             fri_trade_cursor.execute(q)
 
     print("xAPI: DONE")
