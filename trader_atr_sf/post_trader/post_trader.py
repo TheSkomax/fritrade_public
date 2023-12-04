@@ -114,7 +114,7 @@ def write_to_db(message):
         print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
         log_post_trader.warning(mes)
 
-        check_last_alert_value()
+        check_last_alert_value(symbol, timeframe)
 
     elif message["type"] == "alert":
         time_received = message["time_received"]
@@ -136,7 +136,7 @@ def write_to_db(message):
         log_post_trader.warning(mes)
 
         find_value_for_alert(time_received, date_dmy, operation, symbol, timeframe)
-        check_last_alert_value()
+        check_last_alert_value(symbol, timeframe)
 
 
 def get_sl_tp(operation, symbol, timeframe, indicator):
@@ -266,15 +266,18 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
             time.sleep(5)
 
 
-def check_last_alert_value():
+def check_last_alert_value(symbol, timeframe):
     q = f"""select id, price_close, value_atr, alert_type, symbol, timeframe from fri_trade.post_values
-            where alert_type is not Null and processed = False order by id desc limit 1"""
+            where alert_type is not Null and processed = False and symbol = '{symbol}' and
+            timeframe = '{timeframe}' order by id desc limit 1"""
     main_cursor.execute(q)
     value_data = main_cursor.fetchone()
 
+    # if there is a new value that belongs to an alert and is not yet processed
     if value_data is not None:
         alert_value_id, alert_price_close, alert_value_atr, alert_operation, alert_symbol, alert_timeframe = value_data
 
+        # selecting the latest VALUE that is in the db
         q = f"""select id, price_close, value_atr from fri_trade.post_values
                 where symbol = '{alert_symbol}' and timeframe = '{alert_timeframe}' order by id desc limit 1"""
         main_cursor.execute(q)
