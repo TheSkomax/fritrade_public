@@ -23,7 +23,7 @@ mainqueue = queue.Queue()
 def webhook():
     if request.method == "POST":
         payload = request.json
-        print(f"\n\n{datetime_now('date')} {datetime_now('hms')} New TV payload received ------------------"
+        print(f"\n\n{datetime_now('date')} {datetime_now('hms')} ------ New TV payload received ------------------"
               f"\n{payload}")
         mainqueue.put(payload)
 
