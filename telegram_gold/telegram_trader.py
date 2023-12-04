@@ -119,12 +119,12 @@ def main():
                              new_msg_values["SL"],
                              )
             else:
-                warn = f"Value number {new_msg_values['message_number']} is old, NO TRADE!!!"
+                warn = f"Message number {new_msg_values['message_number']} is old - NO TRADE!!! (setting as processed)"
                 print(warn)
                 log_trader.warning(warn)
 
             q_set_processed = f"""UPDATE fri_trade.gold_messages SET processed = True
-                                  here id = {new_msg_values['id']}"""
+                                  where id = {new_msg_values['id']}"""
             cursor.execute(q_set_processed)
 
         else:
