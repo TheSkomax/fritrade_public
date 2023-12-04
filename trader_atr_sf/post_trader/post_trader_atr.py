@@ -5,17 +5,18 @@
 # ===================================================================================
 
 import os
-import dotenv
-import mysql.connector
 import time
+import queue
+import dotenv
+import logging
+import threading
+import subprocess
+import mysql.connector
 from datetime import date
 from datetime import datetime
-import subprocess
-import logging
 from twilio.rest import Client
 from flask import Flask, request, abort
-import queue
-import threading
+
 
 app = Flask(__name__)
 dotenv.load_dotenv(".env")
@@ -67,11 +68,8 @@ def datetime_now(time_format: str) -> str:
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
-        # payload = request.json
         mainqueue.put(request.json)
         log_post_trader.info("Received post request was added to queue")
-        # write_to_db(payload)
-        # run_thread(payload)
 
         return "OK", 200
     else:
@@ -79,7 +77,7 @@ def webhook():
 
 
 def writing():
-    m = "Writing thread started!"
+    m = "=== Writing thread started! ==="
     print(m)
     log_post_trader.info(m)
     while True:
@@ -90,9 +88,9 @@ def writing():
             time.sleep(30)
 
 
-# def write_to_db(message):
 def write_to_db(message):
-    print(f"\n\n------------------ Received new payload from gateway ------------------\n{message}")
+    print(f"\n\n{datetime_now('date')} {datetime_now('hms')}      Received new payload from gateway"
+          f" ------------------\n{message}")
 
     if message["type"] == "value":
         time_received = message["time_received"]
@@ -271,11 +269,12 @@ def check_last_alert_value(symbol, timeframe):
             where alert_type is not Null and processed = False and symbol = '{symbol}' and
             timeframe = '{timeframe}' order by id desc limit 1"""
     main_cursor.execute(q)
-    value_data = main_cursor.fetchone()
+    alert_value_data = main_cursor.fetchone()
 
     # if there is a new value that belongs to an alert and is not yet processed
-    if value_data is not None:
-        alert_value_id, alert_price_close, alert_value_atr, alert_operation, alert_symbol, alert_timeframe = value_data
+    if alert_value_data is not None:
+        (alert_value_id, alert_price_close, alert_value_atr,
+         alert_operation, alert_symbol, alert_timeframe) = alert_value_data
 
         # selecting the latest VALUE that is in the db
         q = f"""select id, price_close, value_atr from fri_trade.post_values
@@ -288,29 +287,27 @@ def check_last_alert_value(symbol, timeframe):
             if latest_value_atr > alert_value_atr:
                 print("*\n*\n*\n*\nopen trade BUY")
                 log_post_trader.critical("BUY !!!!")
-                q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
+                q = f"""update fri_trade.post_values set processed = True where id = {alert_value_id}"""
                 main_cursor.execute(q)
         elif alert_operation == "sell":
             if latest_value_atr < alert_value_atr:
                 print("*\n*\n*\n*\nopen trade SELL")
                 log_post_trader.critical("SELL !!!!")
-                q = f"""update table fri_trade.post_values set processed = True where id = {alert_value_id}"""
+                q = f"""update fri_trade.post_values set processed = True where id = {alert_value_id}"""
                 main_cursor.execute(q)
+    else:
+        log_post_trader.info(f"No new alert_value for {symbol} {timeframe} combination")
 
 
 if __name__ == "__main__":
     print("==========================================================================================\n"
-          "ATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n"
+          "Post trader ATR - obchoduju sa ATR zlomy potvrdene 2(1?) stupajucimi hodnotami po zlome\n"
           "==========================================================================================")
-    log_post_trader.info("=== STARTED ===")
+    log_post_trader.info("================== STARTED ==================")
 
     threading.Thread(target=writing, name="writing").start()
     app.run(port=5001)
 
-    # symbol = "META"
-    # timeframe = "1h"
-    # q = f"""select id, timeReceived from fri_trade.post_values where symbol = '{symbol}' and timeframe = '{timeframe}'
-    #             order by message_number desc limit 1"""
-    # main_cursor.execute(q)
-    # value_id, value_time_received = main_cursor.fetchone()
-    # value_hour, value_min, value_sec = value_time_received.split(":")
+# TODO: ked pride alert ale pocas trvania toho breaku sa ATR nepohne, teda nepotvrdi sa a tym padom alert_value zostane
+#       nespracovane v db, ako bude program postupovat? Kedze to vybera podla najvyssieho (najnovsieho) ID
+# TODO:
