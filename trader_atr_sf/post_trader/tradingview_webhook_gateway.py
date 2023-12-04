@@ -68,6 +68,8 @@ def extract_message_data(message):
             elif time_hms[0] == 22:
                 time_hms[0] = "23"
             time_received = ":".join(time_hms)
+        else:
+            print("Test spracovani casu 1 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
 
         symbol = message["symbol"]
         timeframe = message["timeframe"]
@@ -102,6 +104,8 @@ def extract_message_data(message):
             elif time_hms[0] == 22:
                 time_hms[0] = "23"
             time_received = ":".join(time_hms)
+        else:
+            print("Test spracovani casu 2 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
 
         price_close = round(float(message["price"]), 5)
         # atrup_value = round(float(message["ATR-upper"]), 5)

@@ -256,7 +256,8 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
         value_id, value_time_received, value_date_received = main_cursor.fetchone()
         value_hour, value_min, value_sec = value_time_received.split(":")
 
-        if alert_hour == value_hour and int(alert_min) == int(value_min) and alert_date_received == value_date_received:
+        if (int(alert_hour) == int(value_hour) and int(alert_min) == int(value_min)
+                and alert_date_received == value_date_received):
             q = f"""update fri_trade.post_values set alert_type = '{operation}' where id = {value_id}"""
             main_cursor.execute(q)
             log_post_trader.info("DONE")
