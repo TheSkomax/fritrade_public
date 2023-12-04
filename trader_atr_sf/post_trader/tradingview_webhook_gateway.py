@@ -4,13 +4,15 @@
 # ATR - obchoduju sa ATR zlomy potvrdene 2 stupajucimi hodnotami po zlome
 # ===================================================================================
 
-import threading
-from flask import Flask, request, abort
-import requests
-import json
-from datetime import datetime
-import queue
 import time
+import json
+import queue
+import requests
+import threading
+from datetime import date
+from datetime import datetime
+from flask import Flask, request, abort
+
 
 app = Flask(__name__)
 localhost_url = "http://127.0.0.1:5001/webhook"
@@ -21,14 +23,21 @@ mainqueue = queue.Queue()
 def webhook():
     if request.method == "POST":
         payload = request.json
-        print(f"\n\n------------------ New TV payload received ------------------"
+        print(f"\n\n{datetime_now('date')} {datetime_now('hms')} New TV payload received ------------------"
               f"\n{payload}")
-        # send_request_to_posttrader(payload)
         mainqueue.put(payload)
 
         return "OK", 200
     else:
         abort(400)
+
+
+def datetime_now(time_format: str) -> str:
+    time_dict = {
+        "hms": datetime.now().strftime("%H:%M:%S"),
+        "date": date.today().strftime("%d.%m.%Y")
+    }
+    return time_dict[time_format]
 
 
 def send_request_to_posttrader():
@@ -69,13 +78,12 @@ def extract_message_data(message):
                 time_hms[0] = "23"
             time_received = ":".join(time_hms)
         else:
-            print("Test spracovani casu 1 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
+            print("Test spracovania casu 1 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
 
         symbol = message["symbol"]
         timeframe = message["timeframe"]
         operation = message["operation"]
         indicator = message["indicator"]
-        # subject = f"{message["type"]} {symbol} {timeframe} {operation} {indicator}"
 
         return {"type": "alert", "time_received": time_received, "date_dmy": date_dmy, "sender": "POST",
                 "symbol": symbol, "timeframe": timeframe, "operation": operation, "indicator": indicator}
@@ -105,11 +113,9 @@ def extract_message_data(message):
                 time_hms[0] = "23"
             time_received = ":".join(time_hms)
         else:
-            print("Test spracovani casu 2 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
+            print("Test spracovania casu 2 nepresiel!!!\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*\n*")
 
         price_close = round(float(message["price"]), 5)
-        # atrup_value = round(float(message["ATR-upper"]), 5)
-        # atrlow_value = round(float(message["ATR-lower"]), 5)
         atr_value = round(float(message["ATR"]), 5)
         symbol = message["symbol"]
         timeframe = message["timeframe"]
