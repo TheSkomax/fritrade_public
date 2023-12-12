@@ -166,6 +166,3 @@ def communicator(operation, price_actual, range_start, range_end, TP1, TP2, TP3,
 
 if __name__ == '__main__':
     main()
-
-# TODO: uz nebude nikdy uplne prazdny chat kedze tam je ta pripnuta sprava. Upravit to tak aby si to vedelo zistit, ze
-#       tam ziadne signalove spravy nie su
