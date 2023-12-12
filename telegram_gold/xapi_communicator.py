@@ -67,7 +67,7 @@ class XtbApi:
 
             if login_response["status"]:
                 out = "Logged into XTB!"
-                print("xAPI:", out)
+                print(f"\nxAPI: {out}")
                 log_xapi_comm.info(out)
 
                 logged_in = True
@@ -77,13 +77,14 @@ class XtbApi:
 
             elif login_response['errorCode'] == "BE118":
                 out = "Already logged in!"
-                print("xAPI:", out)
+                print(f"\nxAPI: {out}")
+                log_xapi_comm.warning(out)
                 logged_in = True
 
             else:
                 logged_in = False
                 out = f"Login failed!   {login_response['errorCode']} - {login_response['errorDescr']}"
-                print("xAPI:", out)
+                print(f"\nxAPI: {out}")
                 log_xapi_comm.error(out)
                 time.sleep(5)
 
@@ -99,14 +100,15 @@ class XtbApi:
 
             if logout_response["status"]:
                 out = "Logged out of XTB!"
-                print(f"\nxAPI: {out}")
+                print(f"xAPI: {out}")
                 log_xapi_comm.info(out)
 
                 logged_out = True
 
             else:
                 out = f"Logout failed!   {logout_response['errorCode']} - {logout_response['errorDescr']}"
-                print("xAPI:", out)
+                print(f"xAPI: {out}")
+                log_xapi_comm.error(out)
 
                 logged_out = False
                 time.sleep(2)
@@ -248,9 +250,6 @@ def calc_tp_sl(operation, price_message, TP1, TP2, TP3, SL, price_ask, price_bid
 
         stoploss_pips = round(price_message - SL, 2)
         stoploss_price = round(price_ask - stoploss_pips, 2)
-        print("xAPI:", "takeprofit_pips:", takeprofit_pips, "stoploss_pips:", stoploss_pips)
-
-        return takeprofit_price, stoploss_price
 
     else:   # SELL
         if TP2 is not None:
@@ -262,9 +261,11 @@ def calc_tp_sl(operation, price_message, TP1, TP2, TP3, SL, price_ask, price_bid
 
         stoploss_pips = round(SL - price_message, 2)
         stoploss_price = round(price_bid + stoploss_pips, 2)
-        print("xAPI:", "takeprofit_pips:", takeprofit_pips, "stoploss_pips:", stoploss_pips)
 
-        return takeprofit_price, stoploss_price
+    out = f"xAPI: takeprofit_pips: {takeprofit_pips}, stoploss_pips: {stoploss_pips}"
+    print(out)
+    log_xapi_comm.info(out)
+    return takeprofit_price, stoploss_price
 
 
 def open_trade(operation, price_message, range_start, range_end, TP1, TP2, TP3, SL):
@@ -311,10 +312,9 @@ def open_trade(operation, price_message, range_start, range_end, TP1, TP2, TP3, 
     margin_required = transaction_data["margin"]
 
     if opened:
-        opened_message_status = f"{symbol} Order number {ordernum} - trade OPENED!"
+        log_xapi_comm.warning(f"OPENED - {symbol} {operation} - order number {ordernum}")
     else:
-        opened_message_status = f"{symbol} Order number {ordernum} - trade DENIED! - Reason: {message}"
-    log_xapi_comm.warning(opened_message_status)
+        log_xapi_comm.error(f"DENIED - {symbol} {operation} - order number {ordernum} - Reason: {message}")
     # print("xAPI:", opened_message_status)
 
     allopenedtrades = xtb.get_all_opened_only_positions()
