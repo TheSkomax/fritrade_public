@@ -127,17 +127,17 @@ def main():
     last_msg_num = cursor.fetchone()[0]
     num_tried = 0
     message_ok = False
-    chat_not_empty = False
-
-    while not chat_not_empty:
-        try:
-            time.sleep(3)
-            driver.find_element(By.XPATH, xpaths["no_messages_yet"])
-            print(f"Chat is NOT empty! Trying to find the message {last_msg_num}")
-            chat_not_empty = True
-        except NoSuchElementException:
-            num_tried = num_tried + 1
-            time.sleep(5)
+    # chat_not_empty = False
+    #
+    # while not chat_not_empty:
+    #     try:
+    #         time.sleep(3)
+    #         driver.find_element(By.XPATH, xpaths["no_messages_yet"])
+    #         print(f"Chat is NOT empty! Trying to find the message {last_msg_num}")
+    #         chat_not_empty = True
+    #     except NoSuchElementException:
+    #         num_tried = num_tried + 1
+    #         time.sleep(5)
 
     num_tried = 0
     while not message_ok:
