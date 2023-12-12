@@ -245,7 +245,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
     clean_str = " ".join(temp_list).split("\n")
     temp_list.clear()
     for i in clean_str:
-        if ":" in i or "." in i or " " in i:
+        if ":" in i or "." in i or " " in i or "-" in i:
             i.replace(" ", "")
             temp_list.append(i)
 
@@ -267,6 +267,8 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "SL": temp_list[7],
             "message_number": int(temp_list[9]),
         }
+
+        print("TEMP LIST\n", temp_list, "\nVALUES\n", values)
 
         # msg_ok = False
         # while not msg_ok:
@@ -290,7 +292,6 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
-            print("INSERTING 3")
             try:
                 q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, TP3, SL, processed)
@@ -327,6 +328,8 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "message_number": int(temp_list[8]),
         }
 
+        print("TEMP LIST\n", temp_list, "\nVALUES\n", values)
+
         # msg_ok = False
         # while not msg_ok:
         try:
@@ -348,7 +351,6 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
-            print("INSERTING 2")
             try:
                 q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, TP2, SL, processed)
@@ -385,6 +387,8 @@ def get_values(message_list, new_msg_num) -> dict or None:
             "message_number": int(temp_list[7]),
         }
 
+        print("TEMP LIST\n", temp_list, "\nVALUES\n", values)
+
         # msg_ok = False
         # while not msg_ok:
         try:
@@ -405,7 +409,6 @@ def get_values(message_list, new_msg_num) -> dict or None:
             values["SL"] = float(values["SL"].replace("SL: ", ""))
 
             # print(values)
-            print("INSERTING 1")
             try:
                 q = f"""INSERT INTO fri_trade.gold_messages (message_number, message_time, message_date,
                     price_actual, operation, range_start, range_end, TP1, SL, processed)
@@ -424,7 +427,7 @@ def get_values(message_list, new_msg_num) -> dict or None:
 
         except:
             err = "1 TP - Parsing the values has failed! The format of messages has probably been changed!"
-            print(traceback.print_exc(), f"\n{err}")
+            print(err)
             log_telegram_gold.critical(err)
             return None
 
