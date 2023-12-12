@@ -106,7 +106,7 @@ def main():
                 "processed": new_msg[12],
             }
             if new_msg_values["message_date"] == datetime_now("date") and check_time(new_msg_values["message_time"]):
-                print(f"{datetime_now('date')} {datetime_now('hms')} Opening {new_msg_values['operation']} trade -"
+                print(f"\n{datetime_now('date')} {datetime_now('hms')}   OPENING {new_msg_values['operation']} trade -"
                       f"msg num {new_msg_values['message_number']}")
                 log_trader.info("Date and time OK")
                 log_trader.warning("Starting communicator!")
@@ -121,7 +121,7 @@ def main():
                              new_msg_values["SL"],
                              )
             else:
-                warn = (f"{datetime_now('date')} {datetime_now('hms')} Message number"
+                warn = (f"\n{datetime_now('date')} {datetime_now('hms')} Message number"
                         f"{new_msg_values['message_number']} is OLD - NO TRADE!!! (setting to processed)")
                 print(warn)
                 log_trader.warning(warn)
