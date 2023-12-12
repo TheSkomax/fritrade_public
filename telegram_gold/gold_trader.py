@@ -140,7 +140,7 @@ def main():
 
 def communicator(operation, price_actual, range_start, range_end, TP1, TP2, TP3, SL):
     proc = subprocess.call(["python3",
-                            "./xapi_communicator.py",
+                            "./gold_xapi_comm.py",
                             operation,
                             str(price_actual),
                             str(range_start),
@@ -152,7 +152,7 @@ def communicator(operation, price_actual, range_start, range_end, TP1, TP2, TP3,
                             ])
     if proc == 2:
         subprocess.call(["python3",
-                         "/home/remote/PycharmProjects/fritrade_public/telegram_gold/xapi_communicator.py",
+                         "/home/remote/PycharmProjects/fritrade_public/telegram_gold/gold_xapi_comm.py",
                          operation,
                          str(price_actual),
                          str(range_start),
