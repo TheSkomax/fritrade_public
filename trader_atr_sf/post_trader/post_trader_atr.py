@@ -137,111 +137,6 @@ def write_to_db(message):
         check_last_alert_value(symbol, timeframe)
 
 
-def get_sl_tp(operation, symbol, timeframe, indicator):
-    def get_hour_from_time(time_received):
-        try:
-            return int(time_received[:2])
-        except ValueError:
-            return int(time_received[:1])
-
-    value_query = f"""select timeReceived, price_close, value_atr_up, value_atr_down, dateReceived, message_number
-                       from fri_trade.post_values where symbol = '{symbol}' and timeframe = '{timeframe}'
-                       order by id desc limit 1"""
-    main_cursor.execute(value_query)
-    value_sel_query_result = main_cursor.fetchone()
-
-    value_data = {"time_received":   value_sel_query_result[0],
-                  "hour_received":   get_hour_from_time(value_sel_query_result[0]),
-                  "price_close":     value_sel_query_result[1],
-                  "value_atrb_up":   value_sel_query_result[2],
-                  "value_atrb_down": value_sel_query_result[3],
-                  "date_received":   value_sel_query_result[4],
-                  "message_number":  value_sel_query_result[5]}
-    # print(value_data)
-
-    # alert_query = f"""select timeReceived, dateReceived, message_number
-    #                   from fri_trade.EURCHF_1h_alert_emails_sf_strong order by id desc limit 1"""
-    alert_query = f"""select timeReceived, dateReceived, message_number from fri_trade.email_trader_alerts where
-                       symbol = '{symbol}' and timeframe = '{timeframe}' order by id desc limit 1"""
-    main_cursor.execute(alert_query)
-    alert_sel_query_result = main_cursor.fetchone()
-    alert_data = {"time_received":  alert_sel_query_result[0],
-                  "hour_received":  get_hour_from_time(alert_sel_query_result[0]),
-                  "date_received":  alert_sel_query_result[1],
-                  "message_number": alert_sel_query_result[2]}
-    # print(alert_data)
-
-    time_date_condition = (value_data['hour_received'] == alert_data['hour_received'],
-                           alert_data['hour_received'] == datetime_now("h"),
-                           value_data['date_received'] == alert_data['date_received'],
-                           alert_data['date_received'] == datetime_now("date"))
-    # print(time_date_condition)
-
-    if False not in time_date_condition:
-        if "buy" in operation:
-            stoploss_pips = round(value_data['price_close'] - value_data['value_atrb_down'], 5)
-            # stoploss_price = round(value_data['price_close'] - stoploss_pips, 5)
-
-            takeprofit_price = round(value_data['value_atrb_up'], 5)
-            takeprofit_pips =  round(takeprofit_price - value_data['price_close'], 5)
-        else:  # elif operation == "sell":
-            stoploss_pips = round(value_data['value_atrb_up'] - value_data['price_close'], 5)
-            # stoploss_price = round(value_data['price_close'] + stoploss_pips, 5)
-
-            takeprofit_price = round(value_data['value_atrb_down'], 5)
-            takeprofit_pips =  round(value_data['price_close'] - takeprofit_price, 5)
-
-        mes = f" !!! OPENING TRADE:   {symbol} {timeframe} - {indicator} {operation}"
-        print(f"{datetime_now('date')} {datetime_now('hms')} {mes}")
-        log_post_trader.warning(mes)
-
-        mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {datetime_now("h")},
-                   VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {datetime_now("date")}
-                   EMAIL ALERT number: {alert_data['message_number']}"""
-        log_post_trader.warning(mes)
-
-        manual_only = True
-        if not manual_only:
-            communicator(operation, value_data['price_close'], takeprofit_pips, stoploss_pips, symbol, timeframe)
-
-        else:
-            print("\nCommunicator is OFF!!!\n")
-            log_post_trader.warning("Communicator is OFF!!! - only manual trades")
-
-        return takeprofit_pips, stoploss_pips
-
-    else:
-        print("OLD value in database - see log for details!")
-        mes = f"""VALUE hour_received {value_data['hour_received']} -> ALERT hour_received {alert_data['hour_received']} -> hour_now {datetime_now("h")},
-                   VALUE date_received {value_data['date_received']} -> ALERT date_received {alert_data['date_received']} -> date_now {datetime_now("date")},
-                   EMAIL ALERT number: {alert_data['message_number']}"""
-        log_post_trader.error(mes)
-
-        return False, False
-
-
-def communicator(operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe):
-    proc = subprocess.call(["python3",
-                            "./xapi_communicator.py", operation, price_close, takeprofit_pips, stoploss_pips, symbol,
-                            timeframe
-                            ])
-    if proc == 2:
-        subprocess.call(["python3",
-                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/xapi_communicator.py",
-                         operation, price_close, takeprofit_pips, stoploss_pips, symbol, timeframe
-                         ])
-
-
-def send_sms(text_message):
-    log_post_trader.warning(f"Sending SMS: {text_message}")
-    client = Client(twilio_creds["twilio_sid"],
-                    twilio_creds["twilio_token"])
-    client.messages.create(body= text_message,
-                           from_=twilio_creds["twilio_number"],
-                           to=   twilio_creds["my_phone_number"])
-    log_post_trader.warning(f"SMS has been sent: {text_message}")
-
-
 def find_value_for_alert(alert_time_received, alert_date_received, operation, symbol, timeframe):
     alert_hour, alert_min, alert_sec = alert_time_received.split(":")
 
@@ -261,6 +156,7 @@ def find_value_for_alert(alert_time_received, alert_date_received, operation, sy
             log_post_trader.info("DONE")
             found = True
         else:
+            print("alert_time_received:", alert_time_received, "value_time_received:", value_time_received)
             time.sleep(5)
 
 
@@ -273,30 +169,76 @@ def check_last_alert_value(symbol, timeframe):
 
     # if there is a new value that belongs to an alert and is not yet processed
     if alert_value_data is not None:
-        (alert_value_id, alert_price_close, alert_value_atr,
-         alert_operation, alert_symbol, alert_timeframe) = alert_value_data
+        (alert_value_id, alert_value_price_close, alert_value_atr,
+         alert_value_operation, alert_value_symbol, alert_value_timeframe) = alert_value_data
 
         # selecting the latest VALUE that is in the db
         q = f"""select id, price_close, value_atr from fri_trade.post_values
-                where symbol = '{alert_symbol}' and timeframe = '{alert_timeframe}' order by id desc limit 1"""
+                where symbol = '{alert_value_symbol}' and timeframe = '{alert_value_timeframe}' order by id desc limit 1"""
         main_cursor.execute(q)
         latest_data = main_cursor.fetchone()
-        latest_value_id, latest_price_close, latest_value_atr = latest_data
+        latest_value_id, latest_value_price_close, latest_value_atr = latest_data
 
-        if alert_operation == "buy":
+        if alert_value_operation == "buy":
             if latest_value_atr > alert_value_atr:
-                print("*\n*\n*\n*\nopen trade BUY")
+
+                communicator(
+                    alert_value_operation,
+                    alert_value_price_close,
+                    alert_value_atr,
+                    alert_value_symbol,
+                    alert_value_timeframe,
+                )
+
                 log_post_trader.critical("BUY !!!!")
                 q = f"""update fri_trade.post_values set processed = True where id = {alert_value_id}"""
                 main_cursor.execute(q)
-        elif alert_operation == "sell":
+        elif alert_value_operation == "sell":
             if latest_value_atr < alert_value_atr:
-                print("*\n*\n*\n*\nopen trade SELL")
+
+                communicator(
+                    alert_value_operation,
+                    alert_value_price_close,
+                    alert_value_atr,
+                    alert_value_symbol,
+                    alert_value_timeframe,
+                )
+
                 log_post_trader.critical("SELL !!!!")
                 q = f"""update fri_trade.post_values set processed = True where id = {alert_value_id}"""
                 main_cursor.execute(q)
     else:
         log_post_trader.info(f"No new alert_value for {symbol} {timeframe} combination")
+
+
+def communicator(alert_value_operation, alert_value_price_close, alert_value_atr, alert_value_symbol, alert_value_timeframe, ):
+    proc = subprocess.call(["python3",
+                            "./post_xapi_comm.py",
+                            str(alert_value_operation),
+                            str(alert_value_price_close),
+                            str(alert_value_atr),
+                            str(alert_value_symbol),
+                            str(alert_value_timeframe)
+                            ])
+    if proc == 2:
+        subprocess.call(["python3",
+                         "/home/remote/PycharmProjects/trade/trader_atr_sf/email_trader_forex/post_xapi_comm.py",
+                         str(alert_value_operation),
+                         str(alert_value_price_close),
+                         str(alert_value_atr),
+                         str(alert_value_symbol),
+                         str(alert_value_timeframe)
+                         ])
+
+
+def send_sms(text_message):
+    log_post_trader.warning(f"Sending SMS: {text_message}")
+    client = Client(twilio_creds["twilio_sid"],
+                    twilio_creds["twilio_token"])
+    client.messages.create(body= text_message,
+                           from_=twilio_creds["twilio_number"],
+                           to=   twilio_creds["my_phone_number"])
+    log_post_trader.warning(f"SMS has been sent: {text_message}")
 
 
 if __name__ == "__main__":
@@ -310,4 +252,4 @@ if __name__ == "__main__":
 
 # TODO: ked pride alert ale pocas trvania toho breaku sa ATR nepohne, teda nepotvrdi sa a tym padom alert_value zostane
 #       nespracovane v db, ako bude program postupovat? Kedze to vybera podla najvyssieho (najnovsieho) ID
-# TODO:
+# TODO: Problem ked je hodnota pred polnocou (3m 23:57) tak si potom nevie najst nasledujucu hodnotu/alert - jednoducho problem s hodinou 23 a 00
