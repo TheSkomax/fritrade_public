@@ -7,6 +7,7 @@
 import time
 import json
 import queue
+import logging
 import requests
 import threading
 from datetime import date
@@ -18,14 +19,25 @@ app = Flask(__name__)
 localhost_url = "http://127.0.0.1:5001/webhook"
 mainqueue = queue.Queue()
 
+# ---------------- LOGGING ----------------
+log_gateway = logging.getLogger("logger")
+log_gateway.setLevel(logging.INFO)
+log_formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s",
+                                  "%d.%m.%Y %H:%M:%S")
+file_handler = logging.FileHandler("log_gateway.log")
+file_handler.setFormatter(log_formatter)
+log_gateway.addHandler(file_handler)
+
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     if request.method == "POST":
+        log_gateway.info("New post request was received from Tradingview")
         payload = request.json
         print(f"\n\n{datetime_now('date')} {datetime_now('hms')} ------ New TV payload received ------------------"
               f"\n{payload}")
         mainqueue.put(payload)
+        log_gateway.info(f"Received post request {payload['symbol']} {payload['timeframe']} was added to queue")
 
         return "OK", 200
     else:
@@ -41,13 +53,17 @@ def datetime_now(time_format: str) -> str:
 
 
 def send_request_to_posttrader():
-    print("send_request_to_posttrader thread started!")
+    mes = "send_request_to_posttrader thread started!"
+    print(mes)
+    log_gateway.info(mes)
+
     while True:
-        if not mainqueue.empty():
+        while not mainqueue.empty():
             payload = mainqueue.get()
             data = extract_message_data(payload)
             # print("\n======= DATA", data)
             requests.post(localhost_url, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=5)
+            log_gateway.warning("Extracted data has been sent to post_trader")
         else:
             time.sleep(30)
 
