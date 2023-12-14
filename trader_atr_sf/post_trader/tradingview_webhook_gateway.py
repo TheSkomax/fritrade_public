@@ -37,7 +37,7 @@ def webhook():
         print(f"\n\n{datetime_now('date')} {datetime_now('hms')} ------ New TV payload received ------------------"
               f"\n{payload}")
         mainqueue.put(payload)
-        log_gateway.info(f"Received post request {payload['symbol']} {payload['timeframe']} was added to queue")
+        log_gateway.info(f"Received POST request {payload['symbol']} {payload['timeframe']} was added to queue")
 
         return "OK", 200
     else:

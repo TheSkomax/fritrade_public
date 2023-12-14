@@ -209,9 +209,12 @@ def check_last_alert_value(symbol, timeframe):
                 main_cursor.execute(q)
     else:
         log_post_trader.info(f"No new alert_value for {symbol} {timeframe} combination")
+    print("DEBUG - check_last_alert_value - Done")
 
 
-def communicator(alert_value_operation, alert_value_price_close, alert_value_atr, alert_value_symbol, alert_value_timeframe, ):
+def communicator(alert_value_operation, alert_value_price_close, alert_value_atr,
+                 alert_value_symbol, alert_value_timeframe,):
+    log_post_trader.warning("Starting communicator")
     proc = subprocess.call(["python3",
                             "./post_xapi_comm.py",
                             str(alert_value_operation),
