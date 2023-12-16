@@ -244,7 +244,7 @@ def calc_tp_sl(operation, value_price_close, value_atr, symbol, timeframe, price
     takeprofit_pips = 60
 
     if operation == "buy":
-        stoploss_price = round(((value_price_close - value_atr) + stoploss_pips) + price_ask, 2)
+        stoploss_price = round(price_ask - ((value_price_close - value_atr) + stoploss_pips), 2)
         takeprofit_price = round(price_ask + takeprofit_pips, 2)
 
     else:
